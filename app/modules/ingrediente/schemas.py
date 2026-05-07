@@ -61,7 +61,12 @@ class IngredientePaginadoResponse(SQLModel):
 
 
 # ─── Operaciones N:M ──────────────────────────────────────────────────────
-
+class IngredienteBasicRead(SQLModel):
+    id: int
+    nombre: str
+    es_alergeno: bool
+    activo: bool
+    
 class ProductoBasicRead(SQLModel):
 
     """Schema reducido para evitar import circular."""

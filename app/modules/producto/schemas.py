@@ -1,6 +1,7 @@
 from typing import List, Optional
 from pydantic import Field
 from sqlmodel import SQLModel
+from app.modules.ingrediente.schemas import IngredienteBasicRead
 
 # ─── Base ──────────────────────────────────────────────────────────────────
 class ProductoBase(SQLModel):
