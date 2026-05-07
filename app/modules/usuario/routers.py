@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Path, Query, status
 from typing import Annotated, Optional
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user
@@ -33,11 +32,10 @@ def registrar_usuario(
     status_code=status.HTTP_200_OK,
 )
 def login(
-    #credenciales: schemas.UsuarioLoginRequest,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    credenciales: schemas.UsuarioLoginRequest,
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.login(form_data.username, form_data.password)
+    return svs.login(credenciales.email, credenciales.password)
 
 
 # Rutas Protegidas (requieren autenticación) - Ejemplo de uso de get_current_active_user
