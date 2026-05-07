@@ -1,0 +1,59 @@
+# =========================
+# Python / FastAPI
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenvs
+.venv/
+venv/
+env/
+.ENV/
+.python-version
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Type check / IDE
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local databases / caches
+*.sqlite3
+*.db
+
+# Jupyter / notebooks
+.ipynb_checkpoints/
+
+/.venv
+# Alembic (si usás migraciones, NO ignores alembic/ ni versions/)
+# alembic.ini (puede versionarse; no contiene secretos por defecto)

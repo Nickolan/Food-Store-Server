@@ -1,0 +1,109 @@
+from datetime import datetime
+
+from fastapi import HTTPException, status
+from typing import List, Optional, Tuple
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session, select, func
+
+from .models import Categoria
+from .schemas import CategoriaCreate, CategoriaUpdate, CategoriaRead, CategoriaPaginadoResponse, CategoriaReadFull
+from app.modules.categoria.unit_of_work import CategoriaUnitOfWork
+from app.modules.producto.schemas import ProductoRead
+
+class CategoriaService:
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    # Helpers
+
+    def _get_or_404(self, uow: CategoriaUnitOfWork, categoria_id: int) -> Categoria:
+        categoria = uow.categorias.get_by_id(categoria_id)
+        if not categoria:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Categoria con id={categoria_id} no encontrada",
+            )
+        return categoria
+        
+    def _assert_nombre_unique(self, uow: CategoriaUnitOfWork, nombre: str) -> None:
+        existing = uow.categorias.get_by_nombre(nombre)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Ya existe una categoria con nombre='{nombre}'",
+            )
+        
+    # Casos de Uso
+        
+    def crear_categoria(self, data: CategoriaCreate) -> CategoriaRead:
+        with CategoriaUnitOfWork(self._session) as uow:
+            self._assert_nombre_unique(uow, data.nombre)
+            nueva = Categoria.model_validate(data)
+            uow.categorias.add(nueva)
+            result = CategoriaRead.model_validate(nueva)
+        return result
+    
+    def obtener_todas(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> CategoriaPaginadoResponse:
+        with CategoriaUnitOfWork(self._session) as uow:
+            categorias = uow.categorias.get_paginado_activo(offset=offset, limit=limit, nombre=nombre)
+            total = uow.categorias.count()
+            items = [CategoriaRead.model_validate(c) for c in categorias]
+        return CategoriaPaginadoResponse(total=total, items=items)
+    
+    def obtener_por_id(self, categoria_id: int) -> CategoriaReadFull:
+        with CategoriaUnitOfWork(self._session) as uow:
+            categoria = self._get_or_404(uow, categoria_id)
+            productos = uow.productos.get_by_categoria(categoria_id)
+            sub_categorias = uow.categorias.get_subcategorias(categoria_id)
+
+            categoria_data = categoria.model_dump()
+            productos_data = [ProductoRead.model_validate(p) for p in productos]
+            subcategorias_data = [CategoriaRead.model_validate(c) for c in sub_categorias]
+            datos_completos = {
+                **categoria_data,
+                "productos": productos_data,
+                "subcategorias": subcategorias_data
+            }
+            result = CategoriaReadFull.model_validate(datos_completos)
+        return result
+    
+    def actualizar_total(self, categoria_id: int, data: CategoriaUpdate) -> Optional[Categoria]:
+        with CategoriaUnitOfWork(self._session) as uow:
+            categoria = self._get_or_404(uow, categoria_id)
+            if data.nombre and data.nombre != categoria.nombre:
+                self._assert_nombre_unique(uow, data.nombre)
+            categoria_data = data.model_dump(exclude_unset=True)
+            for key, value in categoria_data.items():
+                setattr(categoria, key, value)
+
+            categoria.updated_at = datetime.utcnow().isoformat()
+            uow.categorias.add(categoria)
+        return categoria
+    
+    def agregar_categoria_padre(self, categoria_id: int, parent_id: int) -> Optional[Categoria]:
+        with CategoriaUnitOfWork(self._session) as uow:
+            categoria = self._get_or_404(uow, categoria_id)
+            parent = self._get_or_404(uow, parent_id)
+            if categoria_id == parent_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Una categoría no puede ser su propia padre",
+                )
+            
+            if categoria.activo == False or parent.activo == False:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No se puede asignar una subcategoría a una categoría inactiva o asignar una categoría inactiva como padre",
+                )
+            categoria.parent_id = parent_id
+            categoria.updated_at = datetime.utcnow().isoformat()
+            uow.categorias.add(categoria)
+        return categoria
+    
+    def desactivar(self, categoria_id: int) -> Optional[Categoria]:
+        with CategoriaUnitOfWork(self._session) as uow:
+            categoria = self._get_or_404(uow, categoria_id)
+            categoria.activo = False
+            categoria.deleted_at = datetime.utcnow().isoformat()
+            uow.categorias.add(categoria)
+        return categoria

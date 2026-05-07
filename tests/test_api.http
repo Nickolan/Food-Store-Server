@@ -1,0 +1,98 @@
+@baseUrl = http://127.0.0.1:8000
+
+### ==========================================
+### MÓDULO: CATEGORÍAS
+### ==========================================
+
+### 1. Listar Categorías
+GET {{baseUrl}}/categorias/
+
+### 2. Crear Categoría
+POST {{baseUrl}}/categorias/
+Content-Type: application/json
+
+{
+  "codigo": "HER-03",
+  "descripcion": "Herramientas Manuales",
+  "activo": true
+}
+
+### 3. Detalle de Categoría Exitoso
+GET {{baseUrl}}/categorias/3
+
+### 4. Actualizar Categoría (Reemplazo Total)
+PUT {{baseUrl}}/categorias/3
+Content-Type: application/json
+
+{
+  "codigo": "HER-03",
+  "descripcion": "Herramientas de Jardinería y Taller",
+  "activo": true
+}
+
+### 5. Desactivar Categoría (Borrado Lógico)
+PUT {{baseUrl}}/categorias/3/desactivar
+
+
+### ==========================================
+### MÓDULO: PRODUCTOS
+### ==========================================
+
+### 6. Crear Producto (Prueba: Body, Pydantic, status 201)
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Silla Ergonómica",
+  "categoria": "MUE-01",
+  "precio": 250.00,
+  "stock": 10,
+  "stock_minimo": 5,
+  "activo": true
+}
+
+### 7. Listar Productos (Prueba: Query Parameters)
+GET {{baseUrl}}/productos/?skip=0&limit=5
+
+### 8. Detalle Producto Exitoso (Prueba: Path Parameters y Response Model)
+GET {{baseUrl}}/productos/1
+
+### 9. Actualizar Producto (Reemplazo total)
+# Bajamos el stock a 3 para forzar la alerta de "bajo_stock_minimo"
+PUT {{baseUrl}}/productos/1
+Content-Type: application/json
+
+{
+  "nombre": "Silla Ergonómica Premium",
+  "categoria": "MUE-01",
+  "precio": 299.99,
+  "stock": 20,
+  "stock_minimo": 5,
+  "activo": true
+}
+
+### 10. Consultar Alerta de Stock (Prueba: Lógica de negocio dinámica)
+# Debería retornar "bajo_stock_minimo": true debido al PUT anterior
+GET {{baseUrl}}/productos/1/stock
+
+### 11. Desactivar Producto (Borrado Lógico)
+PUT {{baseUrl}}/productos/1/desactivar
+
+### 12. Detalle Producto Inexistente (Prueba: Manejo de Errores 404)
+GET {{baseUrl}}/productos/99
+
+### 13. Producto Inválido (Prueba: Error 422 automático)
+# Falla porque: 
+# - La categoría no cumple el Regex.
+# - El precio es negativo.
+POST {{baseUrl}}/productos/
+Content-Type: application/json
+
+{
+  "nombre": "Escritorio Roto",
+  "categoria": "MUEBLES",
+  "precio": -50.00,
+  "stock": 5,
+  "stock_minimo": 5,
+  "activo": true
+}

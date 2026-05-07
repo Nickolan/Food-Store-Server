@@ -1,0 +1,52 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from sqlmodel import SQLModel
+from app.core.database import engine
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.modules.categoria.models import Categoria 
+from app.modules.producto.models import Producto, ProductoCategoriaLink
+from app.modules.ingrediente.models import Ingrediente, IngredienteProductoLink
+from app.modules.usuario.models import Usuario
+
+from app.modules.producto.routers import router as producto_router
+from app.modules.categoria.routers import router as categoria_router
+from app.modules.ingrediente.routers import router as ingrediente_router
+from app.modules.usuario.routers import router as usuario_router
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Startup: crea todas las tablas registradas en SQLModel.metadata.
+    Shutdown: espacio para cerrar conexiones, caches, etc.
+    """
+    SQLModel.metadata.create_all(engine)
+    yield
+
+
+app = FastAPI(
+    title="FastAPI + SQLModel — Relaciones 1:1 · 1:N · N:M",
+    version="Tesis",
+    description=(
+        "Proyecto modular que demuestra las tres relaciones principales:\n\n"
+        "- **1:N** Categoria → Productos (FK `categoria_id` en Producto, lado N)\n"
+        "- **N:M** Producto ↔ Categoria via `ProductoCategoriaLink`\n"
+        "- **N:M** Producto ↔ Ingrediente via `IngredienteProductoLink`\n\n"
+        "Cada módulo tiene sus propios modelos, esquemas, servicios y routers, "
+    ),
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(producto_router)
+app.include_router(categoria_router)
+app.include_router(ingrediente_router)
+app.include_router(usuario_router)
