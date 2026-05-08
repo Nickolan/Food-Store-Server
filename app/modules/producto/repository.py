@@ -18,13 +18,15 @@ class ProductoRepository(BaseRepository[Producto]):
             select(Producto).where(Producto.nombre == nombre)
         )
     
-    def get_paginado(self, offset: int = 0, limit: int = 20) -> list[Producto]:
+    def get_paginado(self, offset: int = 0, limit: int = 20, nombre: str | None = None, activo: bool | None = None) -> list[Producto]:
+        stmt = select(Producto)
+        if nombre:
+            stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        if activo is not None:
+            stmt = stmt.where(Producto.activo == activo)
         return list(
             self.session.exec(
-                select(Producto)
-                .where(Producto.activo == True)
-                .offset(offset)
-                .limit(limit)
+                stmt.offset(offset).limit(limit)
             ).all()
         )
     
@@ -43,8 +45,13 @@ class ProductoRepository(BaseRepository[Producto]):
             .options(selectinload(Producto.ingredientes))
         ).first()
     
-    def count(self) -> int:
-        return len(self.session.exec(select(Producto)).all())
+    def count(self, nombre: str | None = None, activo: bool | None = None) -> int:
+        stmt = select(Producto)
+        if nombre:
+            stmt = stmt.where(Producto.nombre.ilike(f"%{nombre}%"))
+        if activo is not None:
+            stmt = stmt.where(Producto.activo == activo)
+        return len(self.session.exec(stmt).all())
 
 
     def get_by_categoria(self, categoria_id: int) -> list[Producto]:

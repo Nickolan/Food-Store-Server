@@ -24,11 +24,14 @@ def listar_productos(
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     nombre: Optional[str] = None,
+    activo: Optional[bool] = None,
     svc: ProductoService = Depends(get_producto_service)
 ):
     return svc.obtener_todos(
         limit=limit,
-        offset=offset
+        offset=offset,
+        nombre=nombre,
+        activo=activo,
     )
 
 
