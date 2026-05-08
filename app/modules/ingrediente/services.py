@@ -256,6 +256,22 @@ class IngredienteService:
 
             uow.ingredientes.delete(ingrediente)
 
+    def desactivar(self, ingrediente_id: int) -> IngredienteRead:
+
+        with IngredienteUnitOfWork(self._session) as uow:
+
+            ingrediente = self._get_or_404(uow, ingrediente_id)
+
+            ingrediente.activo = False
+
+            ingrediente.updated_at = datetime.utcnow()
+
+            uow.ingredientes.add(ingrediente)
+
+            result = IngredienteRead.model_validate(ingrediente)
+
+        return result
+
 
 
     def agregar_a_producto(self, ingrediente_id: int, body: IngredienteProductoAssign) -> IngredienteReadFull:

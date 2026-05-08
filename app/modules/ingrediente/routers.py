@@ -39,9 +39,9 @@ def actualizar_ingrediente(ingrediente: IngredienteUpdate, id: int = Path(..., g
     actualizado = svc.actualizar(ingrediente_id=id, data=ingrediente)
     return actualizado
 
-@router.delete("/{id}", response_model=None, status_code=status.HTTP_200_OK)
-def eliminar_ingrediente(id: int = Path(..., gt=0), svc: IngredienteService = Depends(get_ingrediente_service)) -> None:
-    svc.eliminar(ingrediente_id=id)
+@router.delete("/{id}", response_model=IngredienteRead, status_code=status.HTTP_200_OK)
+def eliminar_ingrediente(id: int = Path(..., gt=0), svc: IngredienteService = Depends(get_ingrediente_service)) -> IngredienteRead:
+    return svc.desactivar(ingrediente_id=id)
 
 # ─── Endpoints para la Relación N:M ─────────────────────────────────────────
 @router.post("/{id}/productos", response_model=IngredienteReadFull)
