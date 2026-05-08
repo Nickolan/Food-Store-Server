@@ -12,7 +12,7 @@ class CategoriaBase(SQLModel):
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 class CategoriaCreate(CategoriaBase):
-    pass
+    parent_id: Optional[int] = Field(default=None, nullable=True, examples=[1])
 
 class CategoriaUpdate(SQLModel):
     nombre: Optional[str] = Field(None, index=True, examples=["Bebidas"])
