@@ -45,7 +45,7 @@ class CategoriaService:
     
     def obtener_todas(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> CategoriaPaginadoResponse:
         with CategoriaUnitOfWork(self._session) as uow:
-            categorias = uow.categorias.get_paginado_activo(offset=offset, limit=limit, nombre=nombre)
+            categorias = uow.categorias.get_paginado(offset=offset, limit=limit, nombre=nombre)
             total = uow.categorias.count()
             items = [CategoriaRead.model_validate(c) for c in categorias]
         return CategoriaPaginadoResponse(total=total, items=items)

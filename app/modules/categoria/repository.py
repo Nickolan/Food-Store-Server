@@ -14,8 +14,8 @@ class CategoriaRepository(BaseRepository[Categoria]):
     def __init__(self, session) -> None:
         super().__init__(session, Categoria)
 
-    def get_paginado_activo(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> list[Categoria]:
-        stmt = select(Categoria).where(Categoria.activo == True)
+    def get_paginado(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> list[Categoria]:
+        stmt = select(Categoria)
         if nombre:
             stmt = stmt.where(Categoria.nombre.ilike(f"%{nombre}%"))
         return list(
