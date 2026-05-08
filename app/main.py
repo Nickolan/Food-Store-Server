@@ -36,6 +36,7 @@ app = FastAPI(
         "Cada módulo tiene sus propios modelos, esquemas, servicios y routers, "
     ),
     lifespan=lifespan,
+    redirect_slashes=False,
 )
 
 app.add_middleware(

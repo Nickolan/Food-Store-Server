@@ -14,8 +14,8 @@ class CategoriaRepository(BaseRepository[Categoria]):
     def __init__(self, session) -> None:
         super().__init__(session, Categoria)
 
-    def get_paginado_activo(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> list[Categoria]:
-        stmt = select(Categoria).where(Categoria.activo == True)
+    def get_paginado(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None) -> list[Categoria]:
+        stmt = select(Categoria).where(Categoria.deleted_at == None)
         if nombre:
             stmt = stmt.where(Categoria.nombre.ilike(f"%{nombre}%"))
         return list(
@@ -29,11 +29,11 @@ class CategoriaRepository(BaseRepository[Categoria]):
 
     # Traer subcategorias de una categoria
     def get_subcategorias(self, categoria_id: int) -> list[Categoria]:
-        stmt = select(Categoria).where(Categoria.parent_id == categoria_id)
+        stmt = select(Categoria).where(Categoria.parent_id == categoria_id).where(Categoria.deleted_at == None)
         return list(self.session.exec(stmt).all())
     
     def count(self) -> int:
-        return len(self.session.exec(select(Categoria)).all())
+        return len(self.session.exec(select(Categoria).where(Categoria.deleted_at == None)).all())
     
     # def get_by_descripcion(self, descripcion: str) -> Categoria | None:
     #     return self.session.exec(
