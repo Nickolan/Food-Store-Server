@@ -66,10 +66,10 @@ class ProductoService:
             print("Producto creado: ", result)
         return result
     
-    def obtener_todos(self, offset: int = 0, limit: int = 20) -> ProductoPaginadoResponse:
+    def obtener_todos(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None, activo: Optional[bool] = None) -> ProductoPaginadoResponse:
         with ProductoUnitOfWork(self._session) as uow:
-            productos = uow.productos.get_paginado(offset=offset, limit=limit)
-            total = uow.productos.count()
+            productos = uow.productos.get_paginado(offset=offset, limit=limit, nombre=nombre, activo=activo)
+            total = uow.productos.count(nombre=nombre, activo=activo)
 
             result = ProductoPaginadoResponse(
                 items=[ProductoRead.model_validate(p) for p in productos],
