@@ -5,15 +5,17 @@ from fastapi import HTTPException, status
 from sqlmodel import Session, select, func
 
 from .models import Producto, ProductoCategoriaLink
-from .schemas import ProductoRead, ProductoCreate, ProductoUpdate, ProductoPaginadoResponse, ProductoReadFull, CategoriaWithPrincipal,IngredienteWithProductoInfo
+from .schemas import (
+    ProductoRead, ProductoCreate, ProductoUpdate, 
+    ProductoPaginadoResponse, ProductoReadFull, 
+    CategoriaWithPrincipal, IngredienteWithProductoInfo,
+    ProductoIngredienteAssign
+)
 from app.modules.categoria.models import Categoria
+from app.modules.ingrediente.models import Ingrediente
 from app.modules.producto.unit_of_work import ProductoUnitOfWork
 
 class ProductoService:
-    """
-    
-    
-    """
     def __init__(self, session: Session) -> None:
         self._session = session
 
@@ -46,6 +48,14 @@ class ProductoService:
             )
         return categoria
     
+    def _get_ingrediente_or_404(self, uof: ProductoUnitOfWork, ingrediente_id: int) -> Ingrediente:
+        ingrediente = uof.ingredientes.get_by_id(ingrediente_id)
+        if not ingrediente:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Ingrediente con ID {ingrediente_id} no encontrado."
+            )
+        return ingrediente
 
     def _assert_link_not_exists(self, uof: ProductoUnitOfWork, producto_id: int, categoria_id: int):
         link = uof.productos.get_link(producto_id, categoria_id)
@@ -55,14 +65,37 @@ class ProductoService:
                 detail=f"El producto {producto_id} ya tiene asignada la categoría {categoria_id}."
             )
     
+    def _assert_ingrediente_link_not_exists(self, uof: ProductoUnitOfWork, producto_id: int, ingrediente_id: int):
+        link = uof.productos.get_ingrediente_link(producto_id, ingrediente_id)
+        if link:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El producto {producto_id} ya tiene asignado el ingrediente {ingrediente_id}."
+            )
+    
     # Casos de uso
 
     def crear(self, data: ProductoCreate) -> ProductoRead:
         with ProductoUnitOfWork(self._session) as uow:
-            nuevo = Producto.model_validate(data)
+            # Crear producto base
+            nuevo = Producto.model_validate(data.dict(exclude={'ingredientes'}))
             print("Nuevo producto: ", nuevo)
             uow.productos.add(nuevo)
-            result = Producto.model_validate(nuevo)
+            uow.flush()  # Para obtener el ID del producto
+            
+            # Asignar ingredientes si vienen en la creación
+            if data.ingredientes:
+                for ing_data in data.ingredientes:
+                    # Verificar que el ingrediente existe
+                    ingrediente = self._get_ingrediente_or_404(uow, ing_data.ingrediente_id)
+                    # Crear link
+                    uow.productos.link_ingrediente(
+                        producto_id=nuevo.id, 
+                        ingrediente_id=ing_data.ingrediente_id, 
+                        es_removible=ing_data.es_removible
+                    )
+            
+            result = ProductoRead.model_validate(nuevo)
             print("Producto creado: ", result)
         return result
     
@@ -82,35 +115,28 @@ class ProductoService:
             producto = self._get_full_or_404(uow, producto_id)
 
             # validar por cada categoría si es principal o no mediante ProductoCategoriaLink
-            # usar schema CategoriaWithPrincipal para anidar esa info en la respuesta
             response_categorias = []
             for categoria in producto.categorias:
                 link = uow.productos.get_link(producto_id, categoria.id)
-
                 response_categorias.append(CategoriaWithPrincipal(
                     categoria=categoria.model_dump(),
-                    es_principal=link.es_principal == True
+                    es_principal=link.es_principal == True if link else False
                 ))
 
-            # Validar por cada ingrediente si es removible o no mediante IngredienteProductoLink
+            
             response_ingredientes = []
             for ingrediente in producto.ingredientes:
-                link = uow.ingredientes.get_link(ingrediente.id, producto.id)
-
+                link = uow.productos.get_ingrediente_link(producto_id, ingrediente.id)
                 response_ingredientes.append(IngredienteWithProductoInfo(
                     ingrediente=ingrediente.model_dump(),
-                    es_removible=link.es_removible == True
+                    es_removible=link.es_removible == True if link else False
                 ))
 
-            print("Categorias con info de relación: ", response_categorias)
-
-            print("Producto con categorias: ",producto)
-            print("Ingredientes del producto: ", producto.ingredientes)
-            result = {
+            result = ProductoReadFull(
                 **producto.model_dump(),
-                "ingredientes": response_ingredientes,
-                "categorias": response_categorias
-            }
+                ingredientes=response_ingredientes,
+                categorias=response_categorias
+            )
 
         return result
 
@@ -129,6 +155,52 @@ class ProductoService:
             producto = self._get_full_or_404(uow, producto_id)
 
             uow.productos.link_categoria(producto_id, categoria_id, es_principal)
+            result = ProductoRead.model_validate(producto)
+        return result
+    
+    # ─── Nuevos métodos para manejo de ingredientes ─────────────────────────
+    
+    def agregar_ingrediente_a_producto(self, producto_id: int, ingrediente_id: int, es_removible: bool) -> ProductoRead:
+        with ProductoUnitOfWork(self._session) as uow:
+            self._assert_ingrediente_link_not_exists(uow, producto_id, ingrediente_id)
+            self._get_ingrediente_or_404(uow, ingrediente_id)
+            producto = self._get_full_or_404(uow, producto_id)
+            
+            uow.productos.link_ingrediente(producto_id, ingrediente_id, es_removible)
+            result = ProductoRead.model_validate(producto)
+        return result
+    
+    def remover_ingrediente_de_producto(self, producto_id: int, ingrediente_id: int) -> ProductoRead:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            ingrediente = self._get_ingrediente_or_404(uow, ingrediente_id)
+            
+            # Verificar si la relación existe
+            link = uow.productos.get_ingrediente_link(producto_id, ingrediente_id)
+            if not link:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"El producto {producto_id} no tiene asignado el ingrediente {ingrediente_id}"
+                )
+            
+            uow.productos.unlink_ingrediente(producto_id, ingrediente_id)
+            result = ProductoRead.model_validate(producto)
+        return result
+    
+    def actualizar_ingrediente_removible(self, producto_id: int, ingrediente_id: int, es_removible: bool) -> ProductoRead:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            
+            # Verificar que la relación existe
+            link = uow.productos.get_ingrediente_link(producto_id, ingrediente_id)
+            if not link:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"El producto {producto_id} no tiene asignado el ingrediente {ingrediente_id}"
+                )
+            
+            # Actualizar la propiedad es_removible
+            uow.productos.update_ingrediente_removible(producto_id, ingrediente_id, es_removible)
             result = ProductoRead.model_validate(producto)
         return result
     
@@ -159,9 +231,29 @@ class ProductoService:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
 
-            for field, value in data.model_dump(exclude_unset=True).items():
+            # Actualizar campos básicos
+            update_data = data.dict(exclude_unset=True, exclude={'ingredientes'})
+            for field, value in update_data.items():
                 setattr(producto, field, value)
+
+            # Si se enviaron ingredientes, actualizar la lista
+            if data.ingredientes is not None:
+            # Borrar todos los links existentes
+                for link in uow.productos.get_all_ingrediente_links(producto_id):
+                    uow.productos.unlink_ingrediente(producto_id, link.ingrediente_id)
+                # Recrear con los nuevos datos
+                for ing in data.ingredientes:
+                    uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible)
 
             uow.productos.add(producto)
             result = ProductoRead.model_validate(producto)
         return result
+    
+    def reactivar(self, producto_id: int) -> Optional[Producto]:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            producto.activo = True
+            producto.deleted_at = None  # Limpiar la fecha de eliminación
+            producto.updated_at = datetime.utcnow()
+            uow.productos.add(producto)
+        return producto

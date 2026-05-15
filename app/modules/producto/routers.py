@@ -2,7 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from typing import List, Optional
 from sqlmodel import Session
 from app.core.database import get_session
-from app.modules.producto.schemas import ProductoCategoriaAssign, ProductoRead, ProductoCreate, ProductoStockResponse, ProductoUpdate, ProductoPaginadoResponse, ProductoReadFull
+from app.modules.producto.schemas import (
+    ProductoCategoriaAssign, 
+    ProductoRead, 
+    ProductoCreate, 
+    ProductoStockResponse, 
+    ProductoUpdate, 
+    ProductoPaginadoResponse, 
+    ProductoReadFull,
+    ProductoIngredienteAssign
+) 
 
 from app.modules.producto.services import ProductoService
 
@@ -55,7 +64,7 @@ def consultar_stock(id: int = Path(..., gt=0), svc: ProductoService = Depends(ge
     resultado = svc.obtener_estado_stock(id)
     return resultado
 
-# ─── Endpoints para la Relación N:M ─────────────────────────────────────────
+# ─── Endpoints para la Relación N:M con Categorías ─────────────────────────
 @router.post("/{id}/categorias", response_model=ProductoRead, status_code=status.HTTP_200_OK)
 def asignar_categoria(
     id: int, 
@@ -71,3 +80,44 @@ def remover_categoria(id: int, categoria_id: int, svc: ProductoService = Depends
     if not producto:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Relación Producto-Categoría no encontrada")
     return producto
+
+# ─── Nuevos Endpoints para la Relación N:M con Ingredientes ─────────────────
+@router.post("/{id}/ingredientes", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+def asignar_ingrediente(
+    id: int, 
+    body: ProductoIngredienteAssign, 
+    svc: ProductoService = Depends(get_producto_service),
+):
+    """Asigna un ingrediente a un producto indicando si es removible"""
+    producto = svc.agregar_ingrediente_a_producto(id, body.ingrediente_id, es_removible=body.es_removible)
+    return producto
+
+@router.put("/{id}/ingredientes/{ingrediente_id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+def actualizar_ingrediente_removible(
+    id: int, 
+    ingrediente_id: int,
+    es_removible: bool = Query(..., description="True si el ingrediente puede ser removido, False si es fijo"),
+    svc: ProductoService = Depends(get_producto_service),
+):
+    """Actualiza la propiedad es_removible de un ingrediente asociado al producto"""
+    producto = svc.actualizar_ingrediente_removible(id, ingrediente_id, es_removible)
+    return producto
+
+@router.delete("/{id}/ingredientes/{ingrediente_id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+def remover_ingrediente(
+    id: int, 
+    ingrediente_id: int, 
+    svc: ProductoService = Depends(get_producto_service)
+):
+    """Remueve un ingrediente de un producto"""
+    producto = svc.remover_ingrediente_de_producto(id, ingrediente_id)
+    return producto
+
+@router.put("/{id}/reactivar", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+def reactivar_producto(
+    id: int = Path(..., gt=0), 
+    svc: ProductoService = Depends(get_producto_service)
+):
+    """Reactivar un producto previamente desactivado"""
+    reactivado = svc.reactivar(producto_id=id)
+    return reactivado

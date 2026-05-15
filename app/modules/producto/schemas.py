@@ -13,9 +13,15 @@ class ProductoBase(SQLModel):
     imagenes_url: List[str] = Field(default_factory=list, examples=[["https://example.com/producto/pizza.jpg"]])
     disponible: bool = True
 
+# ─── Nuevo schema para ingredientes en creación ───────────────────────────
+class ProductoIngredienteCreate(SQLModel):
+    """Schema para asociar un ingrediente al crear un producto"""
+    ingrediente_id: int
+    es_removible: bool = False
+
 # ─── Request schemas ───────────────────────────────────────────────────────
 class ProductoCreate(ProductoBase):
-    pass 
+    ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(default_factory=list, description="Lista de ingredientes con su propiedad removible")
 
 class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(None, examples=["Cerveza Quilmes"])
@@ -25,14 +31,12 @@ class ProductoUpdate(SQLModel):
     stock_minimo: Optional[int] = Field(None, ge=0)
     imagenes_url: Optional[List[str]] = Field(None, examples=[["https://example.com/producto/pizza.jpg"]])
     disponible: Optional[bool] = None
+    ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(None, description="Lista de ingredientes con su propiedad removible")
 
 # ─── Response schemas ──────────────────────────────────────────────────────
 class ProductoRead(ProductoBase):
     id: int
     activo: bool
-    # created_at: str
-    # updated_at: str
-    # deleted_at: Optional[str] = None
 
 class CategoriaBasicRead(SQLModel):
     """Schema reducido para evitar import circular."""
@@ -51,7 +55,7 @@ class IngredienteWithProductoInfo(SQLModel):
     es_removible: Optional[bool] = None
 
 class ProductoReadFull(ProductoRead):
-    """Producto con sus categorías anidadas."""
+    """Producto con sus categorías e ingredientes anidados."""
     categorias: List[CategoriaWithPrincipal] = []
     ingredientes: List[IngredienteWithProductoInfo] = []
 
@@ -71,12 +75,11 @@ class ProductoPaginadoResponse(SQLModel):
     items: List[ProductoRead]
 
 # ─── Operaciones con Ingredientes ─────────────────────────────────────────
-class IngredienteBasicRead(SQLModel):
-    """Schema reducido para evitar import circular."""
-    id: int
-    nombre: str
-    es_alergeno: bool
+class ProductoIngredienteAssign(SQLModel):
+    """Schema para asignar ingrediente a producto existente"""
+    ingrediente_id: int
+    es_removible: bool = False
 
-class ProductoReadWithIngredientes(ProductoRead):
-    """Producto con sus ingredientes anidados."""
-    ingredientes: List[IngredienteBasicRead] = []
+class ProductoIngredienteRemove(SQLModel):
+    """Schema para remover ingrediente de producto"""
+    ingrediente_id: int

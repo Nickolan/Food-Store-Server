@@ -3,6 +3,7 @@ from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
 from app.modules.producto.models import Producto, ProductoCategoriaLink
 from app.modules.categoria.models import Categoria
+from app.modules.ingrediente.models import IngredienteProductoLink
 
 class ProductoRepository(BaseRepository[Producto]):
     """
@@ -84,3 +85,44 @@ class ProductoRepository(BaseRepository[Producto]):
         if link:
             self.session.delete(link)
             self.session.commit()
+
+    # ─── Ingrediente link helpers ────────────────────────────────────────
+
+    def get_ingrediente_link(self, producto_id: int, ingrediente_id: int) -> IngredienteProductoLink | None:
+        return self.session.exec(
+            select(IngredienteProductoLink).where(
+                IngredienteProductoLink.producto_id == producto_id,
+                IngredienteProductoLink.ingrediente_id == ingrediente_id
+            )
+        ).first()
+
+    def get_all_ingrediente_links(self, producto_id: int) -> list[IngredienteProductoLink]:
+        return list(self.session.exec(
+            select(IngredienteProductoLink).where(
+                IngredienteProductoLink.producto_id == producto_id
+            )
+        ).all())
+
+    def link_ingrediente(self, producto_id: int, ingrediente_id: int, es_removible: bool) -> IngredienteProductoLink:
+        link = IngredienteProductoLink(
+            producto_id=producto_id,
+            ingrediente_id=ingrediente_id,
+            es_removible=es_removible
+        )
+        self.session.add(link)
+        self.session.flush()
+        self.session.refresh(link)
+        return link
+
+    def unlink_ingrediente(self, producto_id: int, ingrediente_id: int) -> None:
+        link = self.get_ingrediente_link(producto_id, ingrediente_id)
+        if link:
+            self.session.delete(link)
+            self.session.flush()
+
+    def update_ingrediente_removible(self, producto_id: int, ingrediente_id: int, es_removible: bool) -> None:
+        link = self.get_ingrediente_link(producto_id, ingrediente_id)
+        if link:
+            link.es_removible = es_removible
+            self.session.add(link)
+            self.session.flush()
