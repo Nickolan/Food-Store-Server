@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from typing import Annotated, Optional
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user
@@ -8,7 +9,7 @@ from . import schemas
 from app.modules.usuario.services import UsuarioService
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios", "Auth"])
-
+oauth2_scheme = HTTPBearer()
 
 def get_usuario_service(session: Session = Depends(get_session)) -> UsuarioService:
     return UsuarioService(session)
@@ -32,23 +33,30 @@ def registrar_usuario(
     status_code=status.HTTP_200_OK,
 )
 def login(
-    credenciales: schemas.UsuarioLoginRequest,
+    data: schemas.LoginRequest,
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.login(credenciales.email, credenciales.password)
+    return svs.login(data.email, data.password)
 
 
 # Rutas Protegidas (requieren autenticación) - Ejemplo de uso de get_current_active_user
 @router.get("/me", response_model=schemas.UsuarioRead)
 def read_me(
-    current_user: Annotated[Usuario, Depends(get_current_active_user)],
+    token: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
+    svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return current_user
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no proporcionado")
+    return svs.get_usuario_from_token(token.credentials)
 
 @router.get("/privado")
 def ruta_privada(
-    current_user: Annotated[Usuario, Depends(get_current_active_user)],
+    token: HTTPAuthorizationCredentials | None = Depends(oauth2_scheme),
+    svs: UsuarioService = Depends(get_usuario_service),
 ):
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token no proporcionado")
+    current_user = svs.get_usuario_from_token(token.credentials)
     return {
         "mensaje": f"¡Hola, {current_user.nombre}! Accediste a una ruta privada.",
     }
