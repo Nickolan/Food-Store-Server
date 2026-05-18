@@ -5,18 +5,14 @@ Flujo de resolución:
     Request
       → oauth2_scheme extrae el Bearer token del header Authorization
       → get_current_user abre un UoW, decodifica el JWT, carga el usuario
-      → get_current_active_user verifica que disabled=False
-      → require_role([...]) verifica que el rol del usuario esté permitido
-
-Separación semántica de errores HTTP:
-    401 = no autenticado (sin token / token inválido / expirado)
-    403 = autenticado pero sin permisos (rol insuficiente)
+      → get_current_active_user verifica que deleted_at es None
+      → require_roles([...]) intercepta el token, lee los roles y verifica permisos.
 
 Capa: Core (dependencias transversales)
 Conoce a: UoW, Security, Model
 """
 
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -26,14 +22,13 @@ from app.core.unit_of_work import UnitOfWork
 from app.modules.usuario.unit_of_work import get_uow
 from app.modules.usuario.models import Usuario
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/usuarios/login")  # Endpoint de login para obtener el token
 
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     uow: Annotated[UnitOfWork, Depends(get_uow)],
 ) -> Usuario:
-    print(f"DEBUG: Token recibido en get_current_user: {token}")
     """Decodifica el JWT y retorna el Usuario correspondiente."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -70,24 +65,42 @@ async def get_current_active_user(
     return current_user
 
 
-def require_role(allowed_roles: list[str]):
+def require_roles(allowed_roles: List[str]):
     """
     Factory de dependencias para control de acceso basado en roles (RBAC).
+    Lee los roles directamente del payload del JWT para mayor rendimiento.
 
     Uso:
-        @router.get("/admin/...", dependencies=[Depends(require_role(["admin"]))])
+        @router.get("/config", dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))])
     """
     async def role_checker(
+        token: Annotated[str, Depends(oauth2_scheme)],
         current_user: Annotated[Usuario, Depends(get_current_active_user)],
     ) -> Usuario:
-        if current_user.role not in allowed_roles:
+        
+        # Obtenemos los roles incrustados en el token JWT
+        payload = decode_access_token(token)
+        if not payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+            
+        user_roles = payload.get("roles", [])
+
+        # Regla de Negocio UML: ADMIN tiene acceso total sin restricciones
+        if "ADMIN" in user_roles:
+            return current_user
+
+        # Verificamos si hay alguna coincidencia entre los roles del usuario y los permitidos
+        has_permission = any(role in allowed_roles for role in user_roles)
+
+        if not has_permission:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=(
-                    f"Permisos insuficientes. Tu rol es '{current_user.role}'. "
-                    f"Se requiere uno de: {allowed_roles}"
+                    f"Permisos insuficientes. Tus roles: {user_roles}. "
+                    f"Se requiere al menos uno de: {allowed_roles}"
                 ),
             )
+            
         return current_user
 
     return role_checker

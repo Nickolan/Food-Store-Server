@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 from app.core.security import hash_password, verify_password, create_access_token
 
-from .models import Usuario
+from .models import Usuario, UsuarioRol
 from app.core.config import settings
 from .schemas import (
     LoginResponse,
@@ -15,7 +15,8 @@ from .schemas import (
     UsuarioRead,
     UsuarioUpdate,
     UsuarioLoginRequest,
-    Token
+    Token,
+    AsignarRolRequest
 )
 from app.modules.usuario.unit_of_work import UsuarioUnitOfWork
 
@@ -43,13 +44,22 @@ class UsuarioService:
                 detail=f"Ya existe un usuario con email='{email}'",
             )
 
+    def _get_rol_or_404(self, uow: UsuarioUnitOfWork, rol_codigo: str):
+        rol = uow.roles.get_by_codigo(rol_codigo)
+        if not rol:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"El rol '{rol_codigo}' no existe en el catálogo.",
+            )
+        return rol
+
     def _hash_password(self, password: str) -> str:
         return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     def _verify_password(self, plain: str, hashed: str) -> bool:
         return bcrypt.checkpw(plain.encode(), hashed.encode())
 
-    # ─── Casos de Uso ──────────────────────────────────────────────────────
+    # ─── Casos de Uso (Usuarios) ───────────────────────────────────────────
 
     def registrar_usuario(self, data: UsuarioCreate) -> UsuarioRead:
         with UsuarioUnitOfWork(self._session) as uow:
@@ -62,6 +72,7 @@ class UsuarioService:
                 password_hash=self._hash_password(data.password),
             )
             uow.usuarios.add(nuevo)
+            uow.commit()
             result = UsuarioRead.model_validate(nuevo)
         return result
 
@@ -86,6 +97,7 @@ class UsuarioService:
                 setattr(usuario, key, value)
             usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
+            uow.commit()
             result = UsuarioRead.model_validate(usuario)
         return result
 
@@ -95,8 +107,59 @@ class UsuarioService:
             usuario.deleted_at = datetime.utcnow()
             usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
+            uow.commit()
             result = UsuarioRead.model_validate(usuario)
         return result
+    
+    def obtener_roles(self):
+        """Devuelve el catálogo completo de roles disponibles."""
+        with UsuarioUnitOfWork(self._session) as uow:
+            return uow.roles.get_all_roles()
+
+    def asignar_rol(self, usuario_id: int, request: AsignarRolRequest, asignado_por_id: int) -> UsuarioRead:
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = self._get_or_404(uow, usuario_id)
+            self._get_rol_or_404(uow, request.rol_codigo)
+
+            asignacion_existente = uow.usuario_roles.get_asignacion(usuario_id, request.rol_codigo)
+            if asignacion_existente:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"El usuario ya posee el rol '{request.rol_codigo}'.",
+                )
+
+            nueva_asignacion = UsuarioRol(
+                usuario_id=usuario_id,
+                rol_codigo=request.rol_codigo,
+                asignado_por_id=asignado_por_id,
+                expires_at=request.expires_at
+            )
+            
+            self._session.add(nueva_asignacion)
+            uow.commit()
+            self._session.refresh(usuario) 
+            
+            result = UsuarioRead.model_validate(usuario)
+        return result
+
+    def remover_rol(self, usuario_id: int, rol_codigo: str) -> UsuarioRead:
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = self._get_or_404(uow, usuario_id)
+            
+            asignacion = uow.usuario_roles.get_asignacion(usuario_id, rol_codigo)
+            if not asignacion:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"El usuario no tiene asignado el rol '{rol_codigo}'.",
+                )
+
+            self._session.delete(asignacion)
+            uow.commit()
+            self._session.refresh(usuario) 
+            
+            result = UsuarioRead.model_validate(usuario)
+        return result
+
 
     def login(self, email: str, password: str) -> LoginResponse:
         with UsuarioUnitOfWork(self._session) as uow:
@@ -112,9 +175,17 @@ class UsuarioService:
                     detail="El usuario está desactivado",
                 )
             result = UsuarioRead.model_validate(usuario)
+            
+            roles_usuario = [rol.codigo for rol in usuario.roles]
+            
             access_token = create_access_token(
-                data={"sub": usuario.email, 'id': usuario.id}
+                data={
+                    "sub": usuario.email, 
+                    "id": usuario.id,
+                    "roles": roles_usuario 
+                }
             )
+            
         return LoginResponse(mensaje="Login exitoso", usuario=result)
         # return Token(
         #     access_token=access_token,

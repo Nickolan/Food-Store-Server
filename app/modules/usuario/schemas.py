@@ -3,6 +3,24 @@ from pydantic import Field, EmailStr
 from sqlmodel import SQLModel
 from datetime import datetime
 
+class RolBase(SQLModel):
+    codigo: str = Field(..., max_length=20, examples=["ADMIN", "STOCK", "CLIENT", "PEDIDOS"])
+    nombre: str = Field(..., max_length=50, examples=["Administrador Global"])
+    descripcion: Optional[str] = Field(default=None, examples=["Acceso total sin restricciones"])
+
+class RolCreate(RolBase):
+    pass
+
+class RolRead(RolBase):
+    pass
+
+class AsignarRolRequest(SQLModel):
+    rol_codigo: str = Field(..., max_length=20, examples=["ADMIN"])
+    expires_at: Optional[datetime] = Field(
+        default=None, 
+        description="Fecha de expiración del rol para este usuario (opcional)"
+    )
+
 # ─── Base ──────────────────────────────────────────────────────────────────
 class UsuarioBase(SQLModel):
     nombre: str = Field(..., min_length=1, max_length=80, examples=["Juan"])
@@ -28,6 +46,7 @@ class UsuarioRead(UsuarioBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    roles: List[RolRead] = Field(default_factory=list)
 
 class UsuarioPaginadoResponse(SQLModel):
     total: int
