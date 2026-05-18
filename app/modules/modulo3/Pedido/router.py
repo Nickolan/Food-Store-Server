@@ -8,7 +8,7 @@ from app.modules.modulo3.Pedido.schema import PedidoCreate, PedidoRead, PedidoUp
 from app.modules.modulo3.Pedido.unitOfWork import PedidoUnitOfWork
 from app.modules.modulo3.Pedido.service import PedidoService 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
-from app.core.deps import get_current_user, require_role
+from app.core.deps import get_current_user, require_roles
 from app.modules.usuario.models import Usuario
 
 router = APIRouter(prefix="/pedidos", tags=["Pedido"])
@@ -37,7 +37,7 @@ def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", d
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este pedido. Solo podes acceder a tus propios pedidos.")
     return pedido
 
-@router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_role(["admin", "pedidos"]))])
+@router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["admin", "pedidos"]))])
 def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     usuario_rol=current_user.role.upper() if current_user.role else None
     return service.actualizar(id,data,usuario_rol)
@@ -49,6 +49,6 @@ def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido"
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al tuyo.")
     return service.obtener_historial(id)
 
-@router.delete("/{id}", response_model=PedidoRead, dependencies=[Depends(require_role(["admin", "pedidos"]))])
+@router.delete("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["admin", "pedidos"]))])
 def eliminar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     return service.borrado_logico(id)
