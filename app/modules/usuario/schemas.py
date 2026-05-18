@@ -52,12 +52,17 @@ class UsuarioPaginadoResponse(SQLModel):
     total: int
     items: List[UsuarioRead]
 
-class LoginResponse(SQLModel):
-    mensaje: str = Field(examples=["Login exitoso"])
-    usuario: UsuarioRead
 
 class Token(SQLModel):
     """Respuesta del endpoint /token."""
     access_token: str
     token_type:   str = "bearer"
     expires_in:   int  # segundos hasta expiración
+
+class LoginResponse(Token):
+    mensaje: str = Field(examples=["Login exitoso"])
+    usuario: UsuarioRead
+
+class LoginRequest(SQLModel):
+    email: str
+    password: str

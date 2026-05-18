@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import BigInteger, CHAR, Column, DateTime, String, ForeignKey, Text
 from sqlmodel import Field, SQLModel, Relationship
+
+if TYPE_CHECKING:
+    from app.modules.direccion.models import Direccion
 
 
 class UsuarioRol(SQLModel, table=True):
@@ -89,3 +92,6 @@ class Usuario(SQLModel, table=True):
             "secondaryjoin": "Rol.codigo == UsuarioRol.rol_codigo"
         }
     )
+    # Relación con Direccion
+    direcciones: List["Direccion"] = Relationship(back_populates="usuario")
+    

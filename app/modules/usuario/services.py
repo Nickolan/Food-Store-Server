@@ -4,7 +4,7 @@ from typing import Optional
 import bcrypt
 from fastapi import HTTPException, status
 from sqlmodel import Session
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import decode_access_token, hash_password, verify_password, create_access_token
 
 from .models import Usuario, UsuarioRol
 from app.core.config import settings
@@ -185,10 +185,44 @@ class UsuarioService:
                     "roles": roles_usuario 
                 }
             )
-            
-        return LoginResponse(mensaje="Login exitoso", usuario=result)
-        # return Token(
-        #     access_token=access_token,
-        #     token_type="bearer",
-        #     expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        # )
+        return LoginResponse(mensaje="Login exitoso", usuario=result, access_token=access_token, expires_in=30 * 60)
+       
+
+    def get_usuario_from_token(self, token: str) -> UsuarioRead:
+        payload = decode_access_token(token)
+        if not payload:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido: falta 'sub'")
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = uow.usuarios.get_by_email(email)
+            if not usuario or usuario.deleted_at is not None:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado o desactivado")
+            return UsuarioRead.model_validate(usuario)
+
+    def authenticate(self, username: str, password: str) -> Token:
+        """Autentica con username + password y retorna un Token con JWT."""
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = uow.usuarios.get_by_email(username)
+
+            if not usuario or not self._verify_password(password, usuario.password_hash):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Credenciales inválidas",
+                    )
+
+            if usuario.deleted_at is not None:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="El usuario está desactivado",
+                    )
+
+            access_token = create_access_token(
+                data={"sub": usuario.email, 'id': usuario.id}
+            )
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )

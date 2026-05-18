@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from typing import Annotated, Optional, List
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, require_role
 from app.modules.usuario.models import Usuario
 from . import schemas
 from app.modules.usuario.services import UsuarioService
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios", "Auth"])
-
+router = APIRouter(prefix="/api/v1/auth", tags=["Usuarios", "Auth"])
+oauth2_scheme = HTTPBearer()
 
 def get_usuario_service(session: Session = Depends(get_session)) -> UsuarioService:
     return UsuarioService(session)
@@ -27,16 +28,37 @@ def registrar_usuario(
 
 
 @router.post(
-    "/login",
-    response_model=schemas.LoginResponse,
+    "/token",
     status_code=status.HTTP_200_OK,
 )
 def login(
-    credenciales: schemas.UsuarioLoginRequest,
+    data: schemas.LoginRequest,
+    response: Response,
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.login(credenciales.email, credenciales.password)
+    token = svs.authenticate(data.email, data.password)
+    response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        max_age=1800,  # 30 minutos, o el valor de expires_in
+        samesite="lax",
+        secure=False,  # En producción con HTTPS debería ser True
+    )
+    return {"mensaje": "Login exitoso. Sesión iniciada."}
 
+@router.post("/logout")
+def logout(response: Response):
+    # Limpiar la cookie HttpOnly al cerrar sesión
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        samesite="lax",
+        secure=False,
+    )
+    return {"mensaje": "Sesión cerrada exitosamente"}
+
+# ─── Rutas protegidas ────────────────────────────────────────────────────────
 
 @router.get("/me", response_model=schemas.UsuarioRead)
 def read_me(
@@ -95,12 +117,15 @@ def remover_rol_de_usuario(
     return svs.remover_rol(usuario_id=id, rol_codigo=rol_codigo)
 
 
+# ─── Rutas de administración (RBAC) ──────────────────────────────────────────
+
 @router.get(
     "/",
     response_model=schemas.UsuarioPaginadoResponse,
     status_code=status.HTTP_200_OK,
 )
 def listar_usuarios(
+     _admin: Annotated[Usuario, Depends(require_role(["admin"]))],
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     svs: UsuarioService = Depends(get_usuario_service),
@@ -139,6 +164,7 @@ def actualizar_usuario(
     status_code=status.HTTP_200_OK,
 )
 def desactivar_usuario(
+     _admin: Annotated[Usuario, Depends(require_role(["admin"]))],
     id: int = Path(..., gt=0),
     svs: UsuarioService = Depends(get_usuario_service),
 ):

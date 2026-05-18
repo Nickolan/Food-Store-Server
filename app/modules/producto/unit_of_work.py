@@ -10,3 +10,6 @@ class ProductoUnitOfWork(UnitOfWork):
         self.productos = ProductoRepository(session)
         self.categorias = CategoriaRepository(session)
         self.ingredientes = IngredienteRepository(session)
+
+    def flush(self) -> None:
+        self._session.flush()
