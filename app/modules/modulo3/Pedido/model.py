@@ -5,7 +5,7 @@ from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 
-# from app.modules.modulo3.Pago.model import Pago NO LO VAMOS A USAR
+# from app.modules.modulo3.Pago.model import Pago POR AHORA NO SE USA
 
 class PedidoBase(SQLModel):
     usuario_id:int=Field(nullable=False, foreign_key="usuario.id")
@@ -39,3 +39,4 @@ class Pedido(PedidoBase,table=True):
   deleted_at: Optional[datetime] = Field(default=None)
 
   detalle: List["DetallePedido"] = Relationship(back_populates="pedido")
+  # pagos: List["Pago"] = Relationship(back_populates="pedido")

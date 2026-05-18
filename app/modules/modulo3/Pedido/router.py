@@ -37,8 +37,8 @@ def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", d
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este pedido. Solo podes acceder a tus propios pedidos.")
     return pedido
 
-@router.put("/{id}", response_model=PedidoRead)
-def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], autorizados=[Depends(require_role(["admin", "pedidos"]))],service:PedidoService=Depends(get_service)):
+@router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_role(["admin", "pedidos"]))])
+def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     usuario_rol=current_user.role.upper() if current_user.role else None
     return service.actualizar(id,data,usuario_rol)
 @router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
@@ -49,6 +49,6 @@ def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido"
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al tuyo.")
     return service.obtener_historial(id)
 
-@router.delete("/{id}", response_model=PedidoRead)
-def eliminar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], autorizados=[Depends(require_role(["admin", "pedidos"]))], service:PedidoService=Depends(get_service)):
+@router.delete("/{id}", response_model=PedidoRead, dependencies=[Depends(require_role(["admin", "pedidos"]))])
+def eliminar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     return service.borrado_logico(id)
