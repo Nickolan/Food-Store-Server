@@ -1,4 +1,5 @@
-from typing import Generic, TypeVar, Type, Sequence
+from datetime import datetime
+from typing import Generic, Optional, TypeVar, Type, Sequence
 from sqlmodel import Session, SQLModel, select
 
 ModelT = TypeVar("ModelT", bound=SQLModel)
@@ -32,3 +33,15 @@ class BaseRepository(Generic[ModelT]):
         
         self.session.delete(instance)
         self.session.flush()
+    
+    def borrado_logico(self,id:int)->Optional[T]:
+        resultado=self.get_by_id(id)
+        if resultado:
+            if hasattr(resultado, "activo"):
+                resultado.activo = False
+            if hasattr(resultado, "deleted_at"):
+                resultado.deleted_at = datetime.now()
+            self.session.add(resultado)
+            self.session.flush()   
+            self.session.refresh(resultado)
+        return resultado
