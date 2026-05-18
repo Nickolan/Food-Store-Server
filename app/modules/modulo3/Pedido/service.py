@@ -43,6 +43,8 @@ class PedidoService:
         if origen in TRANSICIONES_PERMITIDAS:
             if destino not in TRANSICIONES_PERMITIDAS[origen]:
                 raise HTTPException(status_code=400, detail=f"No se puede cambiar el estado de {origen} a {destino}. Transiciones permitidas: {TRANSICIONES_PERMITIDAS[origen]}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Estado de origen desconocido: {origen}. Estados conocidos: {list(TRANSICIONES_PERMITIDAS.keys())}")
         if origen == "EN_PREP" and destino == "CANCELADO":
          if usuario_rol not in ["ADMIN", "PEDIDOS"]:
             raise HTTPException(
