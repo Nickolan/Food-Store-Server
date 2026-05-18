@@ -3,7 +3,7 @@ from typing import Annotated, Optional, List
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.deps import get_current_active_user, require_role
+from app.core.deps import get_current_active_user, require_roles
 from app.modules.usuario.models import Usuario
 from . import schemas
 from app.modules.usuario.services import UsuarioService
@@ -125,7 +125,7 @@ def remover_rol_de_usuario(
     status_code=status.HTTP_200_OK,
 )
 def listar_usuarios(
-     _admin: Annotated[Usuario, Depends(require_role(["admin"]))],
+     _admin: Annotated[Usuario, Depends(require_roles(["admin"]))],
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     svs: UsuarioService = Depends(get_usuario_service),
@@ -164,7 +164,7 @@ def actualizar_usuario(
     status_code=status.HTTP_200_OK,
 )
 def desactivar_usuario(
-     _admin: Annotated[Usuario, Depends(require_role(["admin"]))],
+     _admin: Annotated[Usuario, Depends(require_roles(["admin"]))],
     id: int = Path(..., gt=0),
     svs: UsuarioService = Depends(get_usuario_service),
 ):
