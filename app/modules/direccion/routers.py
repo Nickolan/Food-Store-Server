@@ -1,59 +1,54 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user
 from app.modules.usuario.models import Usuario
-from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate, DireccionRead
+from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
 from app.modules.direccion.services import DireccionService
-from app.modules.direccion.unit_of_work import DireccionUoW
 
-router = APIRouter(
-    prefix="/direcciones",
-    tags=["direcciones"]
-)
+router = APIRouter(prefix="/direcciones", tags=["Direcciones"])
 
 def get_direccion_service(session: Session = Depends(get_session)) -> DireccionService:
-    uow = DireccionUoW(session)
-    return DireccionService(uow)
+    return DireccionService(session)
 
-@router.post("", response_model=DireccionRead, status_code=status.HTTP_201_CREATED)
-async def create_direccion(
+@router.post("/", response_model=DireccionRead, status_code=status.HTTP_201_CREATED)
+def crear_direccion(
     direccion_data: DireccionCreate,
     current_user: Usuario = Depends(get_current_active_user),
-    service: DireccionService = Depends(get_direccion_service)
-):
-    return service.create_direccion(current_user.id, direccion_data)
+    svc: DireccionService = Depends(get_direccion_service)
+) -> DireccionRead:
+    return svc.crear(current_user.id, direccion_data)
 
-@router.get("", response_model=List[DireccionRead])
-async def get_mis_direcciones(
+@router.get("/", response_model=List[DireccionRead], status_code=status.HTTP_200_OK)
+def listar_mis_direcciones(
     current_user: Usuario = Depends(get_current_active_user),
-    service: DireccionService = Depends(get_direccion_service)
-):
-    return service.get_direcciones_by_usuario(current_user.id)
+    svc: DireccionService = Depends(get_direccion_service)
+) -> List[DireccionRead]:
+    return svc.listar_por_usuario(current_user.id)
 
-@router.get("/{direccion_id}", response_model=DireccionRead)
-async def get_direccion_by_id(
-    direccion_id: int,
+@router.get("/{direccion_id}", response_model=DireccionRead, status_code=status.HTTP_200_OK)
+def detalle_direccion(
+    direccion_id: int = Path(..., gt=0),
     current_user: Usuario = Depends(get_current_active_user),
-    service: DireccionService = Depends(get_direccion_service)
-):
-    return service.get_direccion_by_id(direccion_id, current_user.id)
+    svc: DireccionService = Depends(get_direccion_service)
+) -> DireccionRead:
+    return svc.obtener_por_id(current_user.id, direccion_id)
 
-@router.put("/{direccion_id}", response_model=DireccionRead)
-async def update_direccion(
-    direccion_id: int,
-    update_data: DireccionUpdate,
+@router.put("/{direccion_id}", response_model=DireccionRead, status_code=status.HTTP_200_OK)
+def actualizar_direccion(
+    direccion_data: DireccionUpdate,
+    direccion_id: int = Path(..., gt=0),
     current_user: Usuario = Depends(get_current_active_user),
-    service: DireccionService = Depends(get_direccion_service)
-):
-    return service.update_direccion(direccion_id, current_user.id, update_data)
+    svc: DireccionService = Depends(get_direccion_service)
+) -> DireccionRead:
+    return svc.actualizar(current_user.id, direccion_id, direccion_data)
 
 @router.delete("/{direccion_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_direccion(
-    direccion_id: int,
+def eliminar_direccion(
+    direccion_id: int = Path(..., gt=0),
     current_user: Usuario = Depends(get_current_active_user),
-    service: DireccionService = Depends(get_direccion_service)
+    svc: DireccionService = Depends(get_direccion_service)
 ):
-    service.delete_direccion(direccion_id, current_user.id)
+    svc.eliminar(current_user.id, direccion_id)
     return None
