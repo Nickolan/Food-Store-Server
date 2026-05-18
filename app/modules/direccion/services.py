@@ -1,99 +1,110 @@
-from typing import List
+from typing import List, Optional
+from datetime import datetime
 from fastapi import HTTPException, status
+from sqlmodel import select
 from app.modules.direccion.models import Direccion
-from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate
+from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
 from app.modules.direccion.unit_of_work import DireccionUoW
 
 class DireccionService:
-    def __init__(self, uow: DireccionUoW):
-        self.uow = uow
-    
-    def create_direccion(self, usuario_id: int, direccion_data: DireccionCreate) -> Direccion:
-        """Crear una nueva dirección para el usuario"""
-        with self.uow:
-            if direccion_data.es_principal:
-                self.uow.direcciones.reset_principal_flag(usuario_id)
+    """
+    Servicio de Direcciones
+    """
+
+    def __init__(self, session) -> None:
+        self._session = session
+
+    # si no hay una dirección principal, la primera se vuelve principal automáticamente
+    def _get_or_404(self, uow: DireccionUoW, direccion_id: int, usuario_id: int) -> Direccion:
+        direccion = uow.direcciones.get_by_usuario(usuario_id, direccion_id)
+        if not direccion:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Dirección con ID {direccion_id} no encontrada."
+            )
+        return direccion
+
+    # Asegura que el usuario tenga al menos una dirección principal
+    def _ensure_one_principal(self, uow: DireccionUoW, usuario_id: int, direccion_actual: Optional[Direccion] = None) -> None:
+        """Asegura que el usuario tenga al menos una dirección principal"""
+        direcciones = uow.direcciones.get_all_by_usuario(usuario_id)
+        has_principal = any(d.es_principal for d in direcciones)
+        
+        if not has_principal and direcciones:
+            primera = direcciones[0]
+            if direccion_actual and primera.id == direccion_actual.id:
+                primera.es_principal = True
+            else:
+                primera.es_principal = True
+                uow.direcciones.update(primera)
+
+    # Casos de uso
+    def crear(self, usuario_id: int, data: DireccionCreate) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            if data.es_principal:
+                uow.direcciones.reset_principal_flag(usuario_id)
             
-            new_direccion = Direccion(
+            direccion = Direccion(
                 usuario_id=usuario_id,
-                **direccion_data.model_dump()
+                **data.model_dump()
             )
             
-            existing_direcciones = self.uow.direcciones.get_all_by_usuario(usuario_id)
-            if not existing_direcciones:
-                new_direccion.es_principal = True
-            
-            created = self.uow.direcciones.create(new_direccion)
-            return created
-    
-    def get_direcciones_by_usuario(self, usuario_id: int) -> List[Direccion]:
-        with self.uow:
-            return self.uow.direcciones.get_all_by_usuario(usuario_id)
-    
-    def get_direccion_by_id(self, direccion_id: int, usuario_id: int) -> Direccion:
-        with self.uow:
-            direccion = self.uow.direcciones.get_by_id(direccion_id, usuario_id)
-            if not direccion:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Dirección no encontrada"
-                )
-            return direccion
-    
-    def update_direccion(
-        self, 
-        direccion_id: int, 
-        usuario_id: int, 
-        update_data: DireccionUpdate
-    ) -> Direccion:
-        with self.uow:
-            direccion = self.uow.direcciones.get_by_id(direccion_id, usuario_id)
-            if not direccion:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Dirección no encontrada"
-                )
-            
-            if update_data.es_principal and not direccion.es_principal:
-                self.uow.direcciones.reset_principal_flag(usuario_id)
-            
-            update_dict = update_data.model_dump(exclude_unset=True)
-            for key, value in update_dict.items():
-                setattr(direccion, key, value)
-            
-            direcciones_count = len(self.uow.direcciones.get_all_by_usuario(usuario_id))
-            if direcciones_count == 1 and not direccion.es_principal:
+            existing_count = uow.direcciones.count_by_usuario(usuario_id)
+            if existing_count == 0:
                 direccion.es_principal = True
             
-            updated = self.uow.direcciones.update(direccion)
-            self.uow.commit()
-            return updated
-    
-    def delete_direccion(self, direccion_id: int, usuario_id: int) -> None:
-        with self.uow:
-            direccion = self.uow.direcciones.get_by_id(direccion_id, usuario_id)
-            if not direccion:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Dirección no encontrada"
-                )
+            uow.direcciones.add(direccion)
+            result = DireccionRead.model_validate(direccion)
+        return result
+
+    def listar_por_usuario(self, usuario_id: int) -> List[DireccionRead]:
+        with DireccionUoW(self._session) as uow:
+            direcciones = uow.direcciones.get_all_by_usuario(usuario_id)
+            result = [DireccionRead.model_validate(d) for d in direcciones]
+        return result
+
+    def obtener_por_id(self, usuario_id: int, direccion_id: int) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            direccion = self._get_or_404(uow, direccion_id, usuario_id)
+            result = DireccionRead.model_validate(direccion)
+        return result
+
+    def actualizar(self, usuario_id: int, direccion_id: int, data: DireccionUpdate) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            direccion = self._get_or_404(uow, direccion_id, usuario_id)
             
-            direcciones = self.uow.direcciones.get_all_by_usuario(usuario_id)
+            update_data = data.model_dump(exclude_unset=True)
+            
+            if update_data.get("es_principal") and not direccion.es_principal:
+                uow.direcciones.reset_principal_flag(usuario_id)
+            
+            for key, value in update_data.items():
+                setattr(direccion, key, value)
+            
+            direccion.updated_at = datetime.utcnow()
+            uow.direcciones.add(direccion)
+            
+            self._ensure_one_principal(uow, usuario_id, direccion)
+            
+            result = DireccionRead.model_validate(direccion)
+        return result
+
+    def eliminar(self, usuario_id: int, direccion_id: int) -> None:
+        with DireccionUoW(self._session) as uow:
+            direccion = self._get_or_404(uow, direccion_id, usuario_id)
+            
+            direcciones = uow.direcciones.get_all_by_usuario(usuario_id)
             if len(direcciones) == 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="No se puede eliminar la única dirección del usuario"
+                    detail="No se puede eliminar la única dirección del usuario."
                 )
             
             was_principal = direccion.es_principal
             
-            self.uow.direcciones.delete(direccion)
+            # Soft delete
+            direccion.deleted_at = datetime.utcnow()
+            uow.direcciones.add(direccion)
             
             if was_principal:
-                remaining_direcciones = self.uow.direcciones.get_all_by_usuario(usuario_id)
-                if remaining_direcciones:
-                    new_principal = remaining_direcciones[0]
-                    new_principal.es_principal = True
-                    self.uow.direcciones.update(new_principal)
-            
-            self.uow.commit()
+                self._ensure_one_principal(uow, usuario_id)
