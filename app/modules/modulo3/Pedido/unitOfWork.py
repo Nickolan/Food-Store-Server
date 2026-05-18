@@ -1,4 +1,4 @@
-from app.core.unit_of_work import BaseUnitOfWork
+from app.core.unit_of_work import UnitOfWork
 from app.modules.DireccionEntrega.repository import DireccionEntregaRepository
 from app.modules.producto.repository import ProductoRepository
 from app.modules.usuario.repository import UsuarioRepository

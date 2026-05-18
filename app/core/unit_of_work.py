@@ -1,5 +1,4 @@
 from sqlmodel import Session
-
 class UnitOfWork:
 
     def __init__(self, session: Session) -> None:
