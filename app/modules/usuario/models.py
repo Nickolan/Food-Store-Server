@@ -1,7 +1,10 @@
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import BigInteger, CHAR, Column, DateTime, String
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from app.modules.direccion.models import Direccion
 
 
 class Usuario(SQLModel, table=True):
@@ -29,4 +32,7 @@ class Usuario(SQLModel, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
     )
+
+    # Relación con Direccion
+    direcciones: List["Direccion"] = Relationship(back_populates="usuario")
     
