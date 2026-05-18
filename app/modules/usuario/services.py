@@ -116,11 +116,8 @@ class UsuarioService:
                 data={"sub": usuario.email, 'id': usuario.id}
             )
         return LoginResponse(mensaje="Login exitoso", usuario=result, access_token=access_token, expires_in=30 * 60)
-        # return Token(
-        #     access_token=access_token,
-        #     token_type="bearer",
-        #     expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        # )
+       
+
     def get_usuario_from_token(self, token: str) -> UsuarioRead:
         payload = decode_access_token(token)
         if not payload:
@@ -133,3 +130,29 @@ class UsuarioService:
             if not usuario or usuario.deleted_at is not None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado o desactivado")
             return UsuarioRead.model_validate(usuario)
+
+    def authenticate(self, username: str, password: str) -> Token:
+        """Autentica con username + password y retorna un Token con JWT."""
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = uow.usuarios.get_by_email(username)
+
+            if not usuario or not self._verify_password(password, usuario.password_hash):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Credenciales inválidas",
+                    )
+
+            if usuario.deleted_at is not None:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="El usuario está desactivado",
+                    )
+
+            access_token = create_access_token(
+                data={"sub": usuario.email, 'id': usuario.id}
+            )
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        )
