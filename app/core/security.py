@@ -33,8 +33,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     """
     Crea un JWT firmado con HS256.
 
-    Payload mínimo esperado:
-        { "sub": username, "role": role }
+    Payload mínimo esperado según UML:
+        { "sub": email, "id": user_id, "roles": ["ADMIN"] }
 
     Se agrega automáticamente:
         "type": "access"
