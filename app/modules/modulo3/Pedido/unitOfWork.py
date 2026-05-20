@@ -1,5 +1,5 @@
 from app.core.unit_of_work import UnitOfWork
-from app.modules.DireccionEntrega.repository import DireccionEntregaRepository
+from app.modules.direccionEntrega.repository import DireccionEntregaRepository
 from app.modules.producto.repository import ProductoRepository
 from app.modules.usuario.repository import UsuarioRepository
 from app.modules.modulo3.EstadoPedido.repository import EstadoPedidoRepository
@@ -7,7 +7,7 @@ from app.modules.modulo3.HistorialEstadoPedido.repository import HistorialEstado
 from .repository import PedidoRepository
 from ..Formapago.repository import FormaPagoRepository
 
-class PedidoUnitOfWork(BaseUnitOfWork):
+class PedidoUnitOfWork(UnitOfWork):
     def __enter__(self):
         super().__enter__()
         self.pedidos=PedidoRepository(self._session)

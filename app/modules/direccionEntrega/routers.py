@@ -4,8 +4,8 @@ from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user
 from app.modules.usuario.models import Usuario
-from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
-from app.modules.direccion.services import DireccionService
+from app.modules.direccionEntrega.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
+from app.modules.direccionEntrega.services import DireccionService
 
 router = APIRouter(prefix="/direcciones", tags=["Direcciones"])
 
