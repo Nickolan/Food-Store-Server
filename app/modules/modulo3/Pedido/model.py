@@ -9,13 +9,11 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 class PedidoBase(SQLModel):
     usuario_id:int=Field(nullable=False, foreign_key="usuario.id")
-    direccion_id:int=Field(default=None, foreign_key="direccionentrega.id")
+    direccion_id: Optional[int] = Field(default=None, foreign_key="direccion.id", nullable=True)
     estado_codigo: str = Field(foreign_key="estadopedido.codigo")
     forma_pago_codigo: str = Field(foreign_key="formapago.codigo")
-    subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
     descuento: Decimal = Field(default=0.00, max_digits=10, decimal_places=2)
     costo_envio: Decimal = Field(default=50.00, max_digits=10, decimal_places=2)
-    total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
 
     notas: Optional[str] = Field(default=None)
 class DetallePedido(SQLModel, table=True):
@@ -33,7 +31,8 @@ class DetallePedido(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
 class Pedido(PedidoBase,table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
-
+  subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
+  total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
   created_at: datetime = Field(default_factory=datetime.now)
   updated_at: datetime = Field(default_factory=datetime.now)
   deleted_at: Optional[datetime] = Field(default=None)

@@ -217,9 +217,9 @@ class UsuarioService:
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="El usuario está desactivado",
                     )
-
+            roles_usuario = [rol.codigo for rol in usuario.roles]
             access_token = create_access_token(
-                data={"sub": usuario.email, 'id': usuario.id}
+                data={"sub": usuario.email, 'id': usuario.id, "roles": roles_usuario}
             )
         return Token(
             access_token=access_token,
