@@ -22,9 +22,20 @@ def get_usuario_service(session: Session = Depends(get_session)) -> UsuarioServi
 )
 def registrar_usuario(
     usuario: schemas.UsuarioCreate,
+    response: Response,
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.registrar_usuario(usuario)
+    usuarioNuevo = svs.registrar_usuario(usuario)
+    token = svs.authenticate(usuario.email, usuario.password)
+    response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        max_age=1800,
+        samesite="lax",
+        secure=False,
+    )
+    return usuarioNuevo
 
 
 @router.post(
