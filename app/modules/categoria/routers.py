@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from typing import List, Optional
 from sqlmodel import Session
 from app.core.database import get_session
+from app.core.deps import require_roles
 from . import schemas
 from app.modules.categoria.services import CategoriaService
 
@@ -13,7 +14,8 @@ def get_categoria_service(session: Session = Depends(get_session)) -> CategoriaS
 @router.post(
     "/", 
     response_model=schemas.CategoriaRead, 
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
 )
 def alta_categoria(
     categoria: schemas.CategoriaCreate, 
@@ -35,7 +37,12 @@ def listar_categorias(
     )
     
 
-@router.patch("/{id}", response_model=schemas.CategoriaRead, status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{id}", 
+    response_model=schemas.CategoriaRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def agregar_categoria_padre(
     id: int = Path(..., gt=0), 
     parent_id: int = Query(..., gt=0), 
@@ -47,11 +54,21 @@ def agregar_categoria_padre(
 def detalle_categoria(id: int = Path(..., gt=0), svs: CategoriaService = Depends(get_categoria_service)):
     return svs.obtener_por_id(id)
 
-@router.put("/{id}", response_model=schemas.CategoriaRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}", 
+    response_model=schemas.CategoriaRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def actualizar_categoria(categoria: schemas.CategoriaUpdate, id: int = Path(..., gt=0), svs: CategoriaService = Depends(get_categoria_service)):
     actualizada = svs.actualizar_total(id, categoria)
     return actualizada
 
-@router.put("/{id}/desactivar", response_model=schemas.CategoriaRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}/desactivar", 
+    response_model=schemas.CategoriaRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def borrado_logico(id: int = Path(..., gt=0), svs: CategoriaService = Depends(get_categoria_service)):
     return svs.desactivar(id)

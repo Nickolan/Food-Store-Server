@@ -16,14 +16,22 @@ def get_service(session:Session=Depends(get_session)):
     uow=PedidoUnitOfWork(session)
     return PedidoService(uow=uow)
 
-@router.post("/", response_model=PedidoRead)
+@router.post(
+    "/", 
+    response_model=PedidoRead,
+    dependencies=[Depends(require_roles(["ADMIN", "CLIENT"]))],
+)
 def crear_pedido(current_user: Annotated[Usuario, Depends(get_current_user)],data:PedidoCreate, service:PedidoService=Depends(get_service)):
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
     if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
        data.usuario_id = current_user.id #esto sirve para que un usuario sin alguno de estos roles no pueda crear pedidos para otros
     return service.crear(data)
 
-@router.get("/", response_model=List[PedidoRead])
+@router.get(
+    "/", 
+    response_model=List[PedidoRead],
+    dependencies=[Depends(require_roles(["ADMIN", "CLIENT", "PEDIDOS"]))],
+)
 def obtener_pedidos(skip:Annotated[int, Query(ge=0, description="No puede ser negativo")] = 0, limit:Annotated[int, Query(gt=0, le=100, description="Mínimo 1, máximo 100")] = 100, service:PedidoService=Depends(get_service), current_user: Annotated[Usuario, Depends(get_current_user)]=None):
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
     if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
@@ -31,7 +39,11 @@ def obtener_pedidos(skip:Annotated[int, Query(ge=0, description="No puede ser ne
     else:
      return service.obtener_todos(skip,limit)    
 
-@router.get("/{id}", response_model=PedidoRead)
+@router.get(
+    "/{id}", 
+    response_model=PedidoRead,
+    dependencies=[Depends(require_roles(["ADMIN", "CLIENT", "PEDIDOS"]))],
+)
 def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     pedido=service.obtener_por_id(id)
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
@@ -40,11 +52,20 @@ def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", d
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este pedido. Solo podes acceder a tus propios pedidos.")
     return pedido
 
-@router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["admin", "pedidos"]))])
+@router.put(
+    "/{id}", 
+    response_model=PedidoRead, 
+    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
+)
 def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
-    user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    return service.actualizar(id,data,user_role_codes)
-@router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
+    usuario_rol=current_user.role.upper() if current_user.role else None
+    return service.actualizar(id,data,usuario_rol)
+  
+@router.get(
+    "/{id}/historial", 
+    response_model=List[HistorialEstadoPedidoRead],
+    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
+)
 def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)] ,service:PedidoService=Depends(get_service)):
     pedido=service.obtener_por_id(id)
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
@@ -53,3 +74,10 @@ def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido"
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al tuyo.")
     return service.obtener_historial(id)
 
+@router.delete(
+    "/{id}", 
+    response_model=PedidoRead, 
+    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
+)
+def eliminar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
+    return service.borrado_logico(id)

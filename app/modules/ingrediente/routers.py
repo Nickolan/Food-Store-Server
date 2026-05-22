@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from typing import List, Optional
 from sqlmodel import Session
 from app.core.database import get_session
+from app.core.deps import require_roles
 from app.modules.ingrediente.schemas import IngredienteCreate, IngredienteProductoAssign, IngredienteRead, IngredienteReadFull, IngredienteUpdate, IngredientePaginadoResponse
 from app.modules.ingrediente.services import IngredienteService
 
@@ -10,7 +11,12 @@ router = APIRouter(prefix="/ingredientes", tags=["Ingredientes"])
 def get_ingrediente_service(session: Session = Depends(get_session)) -> IngredienteService:
     return IngredienteService(session)
 
-@router.post("/", response_model=IngredienteRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=IngredienteRead, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def crear_ingrediente(
     ingrediente: IngredienteCreate, 
     svc: IngredienteService = Depends(get_ingrediente_service)
@@ -34,17 +40,31 @@ def detalle_ingrediente(id: int = Path(..., gt=0), svc: IngredienteService = Dep
     ingrediente = svc.obtener_por_id(id)
     return ingrediente
 
-@router.put("/{id}", response_model=IngredienteRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}", 
+    response_model=IngredienteRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def actualizar_ingrediente(ingrediente: IngredienteUpdate, id: int = Path(..., gt=0), svc: IngredienteService = Depends(get_ingrediente_service)):
     actualizado = svc.actualizar(ingrediente_id=id, data=ingrediente)
     return actualizado
 
-@router.delete("/{id}", response_model=IngredienteRead, status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{id}", 
+    response_model=IngredienteRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def eliminar_ingrediente(id: int = Path(..., gt=0), svc: IngredienteService = Depends(get_ingrediente_service)) -> IngredienteRead:
     return svc.desactivar(ingrediente_id=id)
 
 # ─── Endpoints para la Relación N:M ─────────────────────────────────────────
-@router.post("/{id}/productos", response_model=IngredienteReadFull)
+@router.post(
+    "/{id}/productos", 
+    response_model=IngredienteReadFull,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def asignar_producto(
     id: int, 
     body: IngredienteProductoAssign, 
@@ -53,7 +73,11 @@ def asignar_producto(
     resultado = svc.agregar_a_producto(ingrediente_id=id, body=body)
     return resultado
 
-@router.delete("/{id}/productos", response_model=IngredienteReadFull)
+@router.delete(
+    "/{id}/productos", 
+    response_model=IngredienteReadFull,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def remover_producto(
     id: int, 
     body: IngredienteProductoAssign, 
