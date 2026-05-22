@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 class PedidoBase(SQLModel):
     usuario_id:int=Field(nullable=False, foreign_key="usuario.id")
-    direccion_id:int=Field(default=None, foreign_key="direccionentrega.id")
+    direccion_id:int=Field(default=None, foreign_key="direccionEntrega.id")
     estado_codigo: str = Field(foreign_key="estadopedido.codigo")
     forma_pago_codigo: str = Field(foreign_key="formapago.codigo")
     subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
