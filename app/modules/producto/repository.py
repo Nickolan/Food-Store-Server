@@ -126,3 +126,10 @@ class ProductoRepository(BaseRepository[Producto]):
             link.es_removible = es_removible
             self.session.add(link)
             self.session.flush()
+    def get_ingredientes_removibles(self, producto_id: int) -> list[int]:
+        return list(self.session.exec(
+            select(IngredienteProductoLink.ingrediente_id).where(
+                IngredienteProductoLink.producto_id == producto_id,
+                IngredienteProductoLink.es_removible == True
+            )
+        ).all())

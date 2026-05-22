@@ -1,8 +1,10 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional, Union
 from fastapi import HTTPException, status
 from sqlmodel import select
-from app.modules.modulo3 import HistorialEstadoPedido, Pedido
+from app.modules.modulo3.Pedido.model import Pedido
+from app.modules.modulo3.HistorialEstadoPedido.model import HistorialEstadoPedido
 from app.modules.modulo3.HistorialEstadoPedido.schema import HistorialEstadoPedidoRead
 from app.modules.modulo3.Pedido.model import DetallePedido
 from app.modules.modulo3.Pedido.schema import PedidoCreate, PedidoRead, PedidoUpdate
@@ -25,8 +27,8 @@ class PedidoService:
           return
         if pedido.estado_codigo == nuevo_codigo:
             return
-        estado_actual = uow.estados.obtener_por_codigo(pedido.estado_codigo)
-        nuevo_estado = uow.estados.obtener_por_codigo(nuevo_codigo)
+        estado_actual = uow.estados.get_by_codigo(pedido.estado_codigo)
+        nuevo_estado = uow.estados.get_by_codigo(nuevo_codigo)
         if not nuevo_estado:
             raise HTTPException(status_code=404, detail=f"El estado {nuevo_codigo} no existe.")
         if estado_actual and estado_actual.es_terminal:
@@ -84,15 +86,26 @@ class PedidoService:
             # Validar forma de pago
             forma_pago_codigo = getattr(data, "forma_pago_codigo", None)
             if forma_pago_codigo:
-             if not uow.formapago.get_by_codigo(forma_pago_codigo):
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"La forma de pago con el código {forma_pago_codigo} no fue encontrada.")
-            
+             forma_pago=uow.formapago.get_by_codigo(forma_pago_codigo)
+             if not forma_pago or not forma_pago.habilitado:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"La forma de pago con el código {forma_pago_codigo} no fue encontrada o no esta habilitada.")
+             if forma_pago.codigo=="EFECTIVO":
+                 if data.costo_envio and data.costo_envio > Decimal("0.0"):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST, 
+                        detail="Si la forma de pago es EFECTIVO, el costo de envío debe ser 0."
+                    )
+                 if data.direccion_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST, 
+                        detail="Si la forma de pago es EFECTIVO, no se debe proporcionar una dirección de entrega."
+                    )
     def crear(self,data:PedidoCreate)->PedidoRead:
         with self.uow as uow:
             self.validar_entidades(uow,data)
             datos_pedido = data.model_dump(exclude={"items"})
             pedido = Pedido(**datos_pedido)
-            acumulado_subtotal=0.0
+            acumulado_subtotal=Decimal("0.0")
             detalles_finales=[]
 
             if data.items:
@@ -100,19 +113,30 @@ class PedidoService:
                     producto = uow.productos.get_by_id(item.producto_id)
                     if not producto:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El producto con el id {item.producto_id} no fue encontrado.")
-                    subtotal = producto.precio * item.cantidad
+                    if item.personalizacion:
+                        ids_personalizaciones=uow.productos.get_ingredientes_removibles(item.producto_id)
+                        for id in item.personalizacion:
+                            if id not in ids_personalizaciones:
+                                raise HTTPException(
+                                    status_code=status.HTTP_400_BAD_REQUEST, 
+                                    detail=f"El ingrediente con id {id} no es removible del producto {item.producto_id}."
+                                )
+                    precio_decimal= Decimal(str(producto.precio_base))
+                    subtotal = precio_decimal * item.cantidad
                     acumulado_subtotal += subtotal
                     detalle=DetallePedido(
                         producto_id=item.producto_id,
                         cantidad=item.cantidad,
                         subtotal_snap=subtotal,
                         nombre_snapshot=producto.nombre,
-                        precio_snapshot=producto.precio,
+                        precio_snapshot=producto.precio_base,
                         personalizacion=item.personalizacion 
                     )
                     detalles_finales.append(detalle)
             pedido.subtotal=acumulado_subtotal
-            pedido.total=pedido.subtotal - pedido.descuento + pedido.costo_envio
+            descuento=pedido.descuento if pedido.descuento else Decimal("0.0")
+            pedido.costo_envio=Decimal("0.0") if pedido.forma_pago_codigo=="EFECTIVO" else Decimal("50.0") # si es efectivo el costo de envio es 0, sino 50
+            pedido.total=pedido.subtotal - descuento + pedido.costo_envio
             pedido.detalle=detalles_finales
             nuevo_pedido=uow.pedidos.add(pedido)
             self.avanzar_estado(uow=uow,pedido=nuevo_pedido,nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
@@ -164,9 +188,4 @@ class PedidoService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
             historiales=uow.historiales.obtener_por_pedido(id)
             return [HistorialEstadoPedidoRead.model_validate(h) for h in historiales]
-    def borrado_logico(self,id:int)->Optional[PedidoRead]:
-        with self.uow as uow:
-            pedido=uow.pedidos.borrado_logico(id)
-            if not pedido:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
-            return PedidoRead.model_validate(pedido)
+   
