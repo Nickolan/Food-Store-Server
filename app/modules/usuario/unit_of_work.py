@@ -15,6 +15,8 @@ class UsuarioUnitOfWork(UnitOfWork):
         self.roles = RolRepository(session)
         self.usuario_roles = UsuarioRolRepository(session)
 
+    def flush(self) -> None:
+            self._session.flush()
 
 def get_uow(session: Session = Depends(get_session)) -> UsuarioUnitOfWork:
     """Dependencia FastAPI: provee un UnitOfWork por request."""
