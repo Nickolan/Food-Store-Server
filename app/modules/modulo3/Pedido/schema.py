@@ -20,10 +20,12 @@ class DetalleRead(SQLModel):
     nombre_snapshot: str
     precio_snapshot: Decimal
     subtotal_snap: Decimal
-    
+    personalizacion: Optional[list[int]] = None
 
 class PedidoRead(PedidoBase):
     id: int
+    subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
+    total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
     detalle: List[DetalleRead] = []
 
 class PedidoUpdate(SQLModel):
