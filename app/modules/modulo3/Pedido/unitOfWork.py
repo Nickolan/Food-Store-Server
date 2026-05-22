@@ -1,5 +1,5 @@
 from app.core.unit_of_work import UnitOfWork
-from app.modules.direccion.repository import DireccionRepository
+from app.modules.direccionEntrega.repository import DireccionEntregaRepository
 from app.modules.producto.repository import ProductoRepository
 from app.modules.usuario.repository import UsuarioRepository
 from app.modules.modulo3.EstadoPedido.repository import EstadoPedidoRepository
@@ -16,5 +16,5 @@ class PedidoUnitOfWork(UnitOfWork):
         self.usuarios = UsuarioRepository(self._session) 
         self.historiales=HistorialEstadoPedidoRepository(self._session)
         self.productos = ProductoRepository(self._session)
-        self.direcciones = DireccionRepository(self._session)
+        self.direcciones = DireccionEntregaRepository(self._session)
         return self

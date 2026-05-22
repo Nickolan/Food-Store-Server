@@ -9,13 +9,13 @@ from app.modules.categoria.models import Categoria
 from app.modules.producto.models import Producto, ProductoCategoriaLink
 from app.modules.ingrediente.models import Ingrediente, IngredienteProductoLink
 from app.modules.usuario.models import Usuario
-from app.modules.direccion.models import Direccion
+from app.modules.direccionEntrega.models import DireccionEntrega
 
 from app.modules.producto.routers import router as producto_router
 from app.modules.categoria.routers import router as categoria_router
 from app.modules.ingrediente.routers import router as ingrediente_router
 from app.modules.usuario.routers import router as usuario_router
-from app.modules.direccion.routers import router as direccion_router
+from app.modules.direccionEntrega.routers import router as direccion_router
 from app.modules.modulo3.Pedido.router import router as pedido_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):

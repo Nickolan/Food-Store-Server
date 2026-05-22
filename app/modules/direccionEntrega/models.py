@@ -7,9 +7,9 @@ from decimal import Decimal
 if TYPE_CHECKING:
     from app.modules.usuario.models import Usuario
 
-class Direccion(SQLModel, table=True):
+class DireccionEntrega(SQLModel, table=True):
     
-    __tablename__ = "direccion"
+    __tablename__ = "direccionEntrega"
     
     id: Optional[int] = Field(
         default=None, 

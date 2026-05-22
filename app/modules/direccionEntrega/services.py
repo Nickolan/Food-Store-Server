@@ -2,9 +2,9 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import HTTPException, status
 from sqlmodel import select
-from app.modules.direccion.models import Direccion
-from app.modules.direccion.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
-from app.modules.direccion.unit_of_work import DireccionUoW
+from app.modules.direccionEntrega.models import DireccionEntrega
+from app.modules.direccionEntrega.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
+from app.modules.direccionEntrega.unit_of_work import DireccionUoW
 
 class DireccionService:
     """
@@ -15,7 +15,7 @@ class DireccionService:
         self._session = session
 
     # si no hay una dirección principal, la primera se vuelve principal automáticamente
-    def _get_or_404(self, uow: DireccionUoW, direccion_id: int, usuario_id: int) -> Direccion:
+    def _get_or_404(self, uow: DireccionUoW, direccion_id: int, usuario_id: int) -> DireccionEntrega:
         direccion = uow.direcciones.get_by_usuario(usuario_id, direccion_id)
         if not direccion:
             raise HTTPException(
@@ -25,7 +25,7 @@ class DireccionService:
         return direccion
 
     # Asegura que el usuario tenga al menos una dirección principal
-    def _ensure_one_principal(self, uow: DireccionUoW, usuario_id: int, direccion_actual: Optional[Direccion] = None) -> None:
+    def _ensure_one_principal(self, uow: DireccionUoW, usuario_id: int, direccion_actual: Optional[DireccionEntrega] = None) -> None:
         """Asegura que el usuario tenga al menos una dirección principal"""
         direcciones = uow.direcciones.get_all_by_usuario(usuario_id)
         has_principal = any(d.es_principal for d in direcciones)
@@ -44,7 +44,7 @@ class DireccionService:
             if data.es_principal:
                 uow.direcciones.reset_principal_flag(usuario_id)
             
-            direccion = Direccion(
+            direccion = DireccionEntrega(
                 usuario_id=usuario_id,
                 **data.model_dump()
             )
