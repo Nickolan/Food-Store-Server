@@ -33,6 +33,10 @@ class DireccionUpdate(SQLModel):
     longitud: Optional[Decimal] = Field(None, max_digits=9, decimal_places=6)
     es_principal: Optional[bool] = None
 
+
+class DireccionPrincipalUpdate(SQLModel):
+    direccion_id: int = Field(gt=0)
+
 # ─── Response schemas ──────────────────────────────────────────────────────
 
 class DireccionRead(DireccionBase):

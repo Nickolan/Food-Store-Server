@@ -1,10 +1,15 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Path, Query
+from fastapi import APIRouter, Depends, status, Path
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import get_current_active_user
 from app.modules.usuario.models import Usuario
-from app.modules.direccionEntrega.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
+from app.modules.direccionEntrega.schemas import (
+    DireccionCreate,
+    DireccionUpdate,
+    DireccionRead,
+    DireccionPrincipalUpdate,
+)
 from app.modules.direccionEntrega.services import DireccionService
 
 router = APIRouter(prefix="/direcciones", tags=["Direcciones"])
@@ -43,6 +48,15 @@ def actualizar_direccion(
     svc: DireccionService = Depends(get_direccion_service)
 ) -> DireccionRead:
     return svc.actualizar(current_user.id, direccion_id, direccion_data)
+
+
+@router.patch("/principal", response_model=DireccionRead, status_code=status.HTTP_200_OK)
+def marcar_direccion_principal(
+    payload: DireccionPrincipalUpdate,
+    current_user: Usuario = Depends(get_current_active_user),
+    svc: DireccionService = Depends(get_direccion_service)
+) -> DireccionRead:
+    return svc.marcar_como_principal(current_user.id, payload.direccion_id)
 
 @router.delete("/{direccion_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_direccion(

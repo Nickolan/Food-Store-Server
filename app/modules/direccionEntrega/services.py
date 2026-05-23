@@ -3,7 +3,12 @@ from datetime import datetime
 from fastapi import HTTPException, status
 from sqlmodel import select
 from app.modules.direccionEntrega.models import DireccionEntrega
-from app.modules.direccionEntrega.schemas import DireccionCreate, DireccionUpdate, DireccionRead, DireccionPaginadoResponse
+from app.modules.direccionEntrega.schemas import (
+    DireccionCreate,
+    DireccionUpdate,
+    DireccionRead,
+    DireccionPaginadoResponse,
+)
 from app.modules.direccionEntrega.unit_of_work import DireccionUoW
 
 class DireccionService:
@@ -102,9 +107,21 @@ class DireccionService:
             
             was_principal = direccion.es_principal
             
-            # Soft delete
             direccion.deleted_at = datetime.utcnow()
             uow.direcciones.add(direccion)
             
             if was_principal:
                 self._ensure_one_principal(uow, usuario_id)
+
+    def marcar_como_principal(self, usuario_id: int, direccion_id: int) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            direccion = self._get_or_404(uow, direccion_id, usuario_id)
+
+            if not direccion.es_principal:
+                uow.direcciones.reset_principal_flag(usuario_id)
+                direccion.es_principal = True
+                direccion.updated_at = datetime.utcnow()
+                uow.direcciones.add(direccion)
+
+            result = DireccionRead.model_validate(direccion)
+        return result

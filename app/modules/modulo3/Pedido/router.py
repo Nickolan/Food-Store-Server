@@ -54,6 +54,7 @@ def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", descr
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
     usuario_rol = "ADMIN" if "ADMIN" in user_role_codes else (user_role_codes[0] if user_role_codes else None)
     return service.actualizar(id,data,usuario_rol)
+
 @router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
 def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)] ,service:PedidoService=Depends(get_service)):
     pedido=service.obtener_por_id(id)
