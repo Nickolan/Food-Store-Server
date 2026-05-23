@@ -31,6 +31,8 @@ class DetallePedido(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.now)
 class Pedido(PedidoBase,table=True):
   id: Optional[int] = Field(default=None, primary_key=True)
+  usuario_id:int=Field(nullable=False, foreign_key="usuario.id")
+  estado_codigo: str = Field(foreign_key="estadopedido.codigo")
   subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
   total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
   created_at: datetime = Field(default_factory=datetime.now)

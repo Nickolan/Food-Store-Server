@@ -22,10 +22,7 @@ def get_service(session:Session=Depends(get_session)):
     dependencies=[Depends(require_roles(["ADMIN", "CLIENT"]))],
 )
 def crear_pedido(current_user: Annotated[Usuario, Depends(get_current_user)],data:PedidoCreate, service:PedidoService=Depends(get_service)):
-    user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
-       data.usuario_id = current_user.id #esto sirve para que un usuario sin alguno de estos roles no pueda crear pedidos para otros
-    return service.crear(data)
+    return service.crear(data, current_user.id)
 
 @router.get(
     "/", 
@@ -52,20 +49,12 @@ def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", d
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este pedido. Solo podes acceder a tus propios pedidos.")
     return pedido
 
-@router.put(
-    "/{id}", 
-    response_model=PedidoRead, 
-    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
-)
+@router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))])
 def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
-    usuario_rol=current_user.role.upper() if current_user.role else None
+    user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
+    usuario_rol = "ADMIN" if "ADMIN" in user_role_codes else (user_role_codes[0] if user_role_codes else None)
     return service.actualizar(id,data,usuario_rol)
-  
-@router.get(
-    "/{id}/historial", 
-    response_model=List[HistorialEstadoPedidoRead],
-    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
-)
+@router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
 def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)] ,service:PedidoService=Depends(get_service)):
     pedido=service.obtener_por_id(id)
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]

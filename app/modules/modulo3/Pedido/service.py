@@ -100,10 +100,12 @@ class PedidoService:
                         status_code=status.HTTP_400_BAD_REQUEST, 
                         detail="Si la forma de pago es EFECTIVO, no se debe proporcionar una dirección de entrega."
                     )
-    def crear(self,data:PedidoCreate)->PedidoRead:
+    def crear(self,data:PedidoCreate, usuario_id: int)->PedidoRead:
         with self.uow as uow:
             self.validar_entidades(uow,data)
             datos_pedido = data.model_dump(exclude={"items"})
+            datos_pedido["estado_codigo"] = "PENDIENTE"
+            datos_pedido["usuario_id"] = usuario_id
             pedido = Pedido(**datos_pedido)
             acumulado_subtotal=Decimal("0.0")
             detalles_finales=[]
@@ -111,8 +113,13 @@ class PedidoService:
             if data.items:
                 for item in data.items:
                     producto = uow.productos.get_by_id(item.producto_id)
-                    if not producto:
+                    if not producto or not producto.activo or not producto.disponible:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El producto con el id {item.producto_id} no fue encontrado.")
+                    if item.cantidad > producto.stock:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST, 
+                            detail=f"No hay suficiente stock para el producto {producto.nombre}. Stock disponible: {producto.stock}, cantidad solicitada: {item.cantidad}."
+                        )
                     if item.personalizacion:
                         ids_personalizaciones=uow.productos.get_ingredientes_removibles(item.producto_id)
                         for id in item.personalizacion:
@@ -139,6 +146,10 @@ class PedidoService:
             pedido.total=pedido.subtotal - descuento + pedido.costo_envio
             pedido.detalle=detalles_finales
             nuevo_pedido=uow.pedidos.add(pedido)
+            for detalle in detalles_finales:
+                producto = uow.productos.get_by_id(detalle.producto_id)
+                producto.stock -= detalle.cantidad
+                uow.productos.add(producto)
             self.avanzar_estado(uow=uow,pedido=nuevo_pedido,nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
             return PedidoRead.model_validate(nuevo_pedido)
     
@@ -166,16 +177,17 @@ class PedidoService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
            datos_nuevos=data.model_dump(exclude_unset=True)
            if "estado_codigo" in datos_nuevos:
-                motivo_cambio = "Cambio de estado mediante la actualización del pedido"
+                motivo_cambio = data.motivo.strip() if data.motivo else "Cambio de estado mediante la actualización del pedido"
                 if datos_nuevos["estado_codigo"].upper() =="CANCELADO":
-                    if not data.notas or not data.notas.strip(): # este strip es para validar que no lo mandaron vacio
+                    if not data.motivo or not data.motivo.strip(): # este strip es para validar que no lo mandaron vacio
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail="RN-05: El motivo es estrictamente obligatorio si el estado es CANCELADO. Por favor, especifíquelo en el campo 'notas'."
+                            detail="El motivo es estrictamente obligatorio si el estado es CANCELADO. Por favor, especifíquelo en el campo 'motivo'."
                         )
-                    motivo_cambio = data.notas.strip()
+                    motivo_cambio = data.motivo.strip()
                 self.avanzar_estado(uow=uow,pedido=pedido,nuevo_codigo=datos_nuevos["estado_codigo"], usuario_id=pedido.usuario_id, motivo=motivo_cambio, usuario_rol=usuario_rol)
                 datos_nuevos.pop("estado_codigo")
+           datos_nuevos.pop("motivo", None)
            for clave, valor in datos_nuevos.items():
                 setattr(pedido, clave, valor)
            pedido.updated_at = datetime.now()

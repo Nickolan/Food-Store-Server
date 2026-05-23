@@ -24,10 +24,12 @@ class DetalleRead(SQLModel):
 
 class PedidoRead(PedidoBase):
     id: int
+    usuario_id:int
+    estado_codigo: str 
     subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
     total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
     detalle: List[DetalleRead] = []
 
 class PedidoUpdate(SQLModel):
-    estado_codigo: Optional[str] = None
-    notas: Optional[str] = None
+    estado_codigo: str
+    motivo: Optional[str] = None
