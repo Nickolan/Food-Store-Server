@@ -159,13 +159,18 @@ def detalle_usuario(
     "/{id}",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_200_OK,
-    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def actualizar_usuario(
     usuario: schemas.UsuarioUpdate,
     id: int = Path(..., gt=0),
     svs: UsuarioService = Depends(get_usuario_service),
+    current_user: Usuario = Depends(get_current_active_user),
 ):
+    if current_user.id != id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para actualizar este usuario",
+        )
     return svs.actualizar(id, usuario)
 
 
