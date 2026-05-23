@@ -64,18 +64,19 @@ class PedidoService:
             motivo=motivo
         )
         uow.historiales.add(historial)
-    def validar_entidades(self,uow,data:Union[PedidoCreate,PedidoUpdate]):
+    def validar_entidades(self,uow,data:Union[PedidoCreate,PedidoUpdate], userid: Optional[int] = None):
             # Validar usuario
-            usuario_id = getattr(data, "usuario_id", None) 
+            usuario_id = userid or getattr(data, "usuario_id", None) 
             if usuario_id:
              if not uow.usuarios.get_by_id(usuario_id):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El usuario con el id {usuario_id} no fue encontrado.")
             
             # Validar dirección de entrega 
-            direccion_id = getattr(data, "direccion_id", None)
-            if direccion_id:
-             if not uow.direcciones.get_by_id(direccion_id):
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"La dirección con el id {direccion_id} no fue encontrada.")
+            if getattr(data, "direccion_id", None) is not None:  # Solo validar si se proporciona una dirección (esto sirve para el crear)
+             direccion_id = getattr(data, "direccion_id", None)
+             if direccion_id:
+              if not uow.direcciones.get_by_id(direccion_id) or uow.direcciones.get_by_id(direccion_id).usuario_id != usuario_id:
+                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"La dirección con el id {direccion_id} es invalida: no pertenece a este usuario o no existe.")
             
             # Validar estado del pedido
             estado_codigo = getattr(data, "estado_codigo", None)
@@ -102,7 +103,7 @@ class PedidoService:
                     )
     def crear(self,data:PedidoCreate, usuario_id: int)->PedidoRead:
         with self.uow as uow:
-            self.validar_entidades(uow,data)
+            self.validar_entidades(uow,data, usuario_id)
             datos_pedido = data.model_dump(exclude={"items"})
             datos_pedido["estado_codigo"] = "PENDIENTE"
             datos_pedido["usuario_id"] = usuario_id
@@ -200,4 +201,19 @@ class PedidoService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
             historiales=uow.historiales.obtener_por_pedido(id)
             return [HistorialEstadoPedidoRead.model_validate(h) for h in historiales]
-   
+    def cancelar_pedido(self,id:int, motivo:str, usuario_id:int, usuario_rol:str)->PedidoRead:
+        with self.uow as uow:
+            pedido=uow.pedidos.get_by_id(id)
+            if not pedido:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
+            if usuario_rol not in ["ADMIN", "PEDIDOS"]:
+             if  pedido.usuario_id != usuario_id:
+                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no pertenece al usuario.")
+             if pedido.estado_codigo != "PENDIENTE" and pedido.estado_codigo != "CONFIRMADO": 
+                 raise HTTPException(
+                     status_code=403, 
+                     detail="Permisos insuficientes: Solo ADMIN o PEDIDOS pueden cancelar un pedido en preparación."
+                 )
+            self.avanzar_estado(uow=uow,pedido=pedido,nuevo_codigo="CANCELADO", usuario_id=usuario_id, motivo=motivo, usuario_rol=usuario_rol)
+            uow.pedidos.add(pedido)
+            return PedidoRead.model_validate(pedido)

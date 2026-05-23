@@ -52,7 +52,12 @@ def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", d
 @router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))])
 def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    usuario_rol = "ADMIN" if "ADMIN" in user_role_codes else (user_role_codes[0] if user_role_codes else None)
+    if "ADMIN" in user_role_codes:
+        usuario_rol = "ADMIN"
+    elif "PEDIDOS" in user_role_codes:
+        usuario_rol = "PEDIDOS"
+    else:
+        usuario_rol = user_role_codes[0] if user_role_codes else None
     return service.actualizar(id,data,usuario_rol)
 
 @router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
@@ -61,13 +66,21 @@ def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido"
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
     if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
         if pedido.usuario_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al tuyo.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al de aquellos pedidos que te pertenezcan.")
     return service.obtener_historial(id)
 
 @router.delete(
     "/{id}", 
-    response_model=PedidoRead, 
-    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))],
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS", "CLIENT"]))],
 )
-def eliminar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
-    return service.borrado_logico(id)
+def cancelar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service), motivo: str = Query(..., description="Motivo de cancelación"),):
+    user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
+    if "ADMIN" in user_role_codes:
+        usuario_rol = "ADMIN"
+    elif "PEDIDOS" in user_role_codes:
+        usuario_rol = "PEDIDOS"
+    else:
+        usuario_rol = user_role_codes[0] if user_role_codes else None
+    return service.cancelar_pedido(id, motivo, current_user.id, usuario_rol)
+
