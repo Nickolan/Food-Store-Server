@@ -8,7 +8,9 @@ from sqlalchemy.dialects.postgresql import ARRAY
 # from app.modules.modulo3.Pago.model import Pago POR AHORA NO SE USA
 
 class PedidoBase(SQLModel):
-    direccion_id: Optional[int] = Field(default=None, foreign_key="direccion.id", nullable=True)
+    usuario_id:int=Field(nullable=False, foreign_key="usuario.id")
+    direccion_id: Optional[int] = Field(default=None, foreign_key="direccionEntrega.id", nullable=True)
+    estado_codigo: str = Field(foreign_key="estadopedido.codigo")
     forma_pago_codigo: str = Field(foreign_key="formapago.codigo")
     descuento: Decimal = Field(default=0.00, max_digits=10, decimal_places=2)
     costo_envio: Decimal = Field(default=50.00, max_digits=10, decimal_places=2)

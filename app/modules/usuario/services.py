@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 from app.core.security import decode_access_token, hash_password, verify_password, create_access_token
 
-from .models import Usuario, UsuarioRol
+from .models import Usuario, UsuarioRol, Rol
 from app.core.config import settings
 from .schemas import (
     LoginResponse,
@@ -64,6 +64,17 @@ class UsuarioService:
     def registrar_usuario(self, data: UsuarioCreate) -> UsuarioRead:
         with UsuarioUnitOfWork(self._session) as uow:
             self._assert_email_unique(uow, data.email)
+
+            rol_cliente = uow.roles.get_by_codigo("CLIENT")
+            if not rol_cliente:
+                rol_cliente = Rol(
+                codigo="CLIENT",
+                nombre="Cliente",
+                descripcion="Cliente regular del sistema"
+                )
+                uow.roles.add(rol_cliente)
+                uow.flush()  # para obtener el ID del rol_cliente
+
             nuevo = Usuario(
                 nombre=data.nombre,
                 apellido=data.apellido,
@@ -72,7 +83,16 @@ class UsuarioService:
                 password_hash=self._hash_password(data.password),
             )
             uow.usuarios.add(nuevo)
+            uow.flush()  # para obtener el ID del nuevo usuario
+
+            asignacion_rol = UsuarioRol(
+                usuario_id=nuevo.id,
+                rol_codigo=rol_cliente.codigo,
+            )
+            uow.usuario_roles.add(asignacion_rol)
+
             uow.commit()
+            self._session.refresh(nuevo)  # para cargar relaciones y datos actualizados
             result = UsuarioRead.model_validate(nuevo)
         return result
 

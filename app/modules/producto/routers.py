@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from typing import List, Optional
 from sqlmodel import Session
 from app.core.database import get_session
+from app.core.deps import require_roles
 from app.modules.producto.schemas import (
     ProductoCategoriaAssign, 
     ProductoRead, 
@@ -20,7 +21,12 @@ router = APIRouter(prefix="/productos", tags=["Productos"])
 def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
     return ProductoService(session)
 
-@router.post("/", response_model=ProductoRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def alta_producto(
     producto: ProductoCreate, 
     svc: ProductoService = Depends(get_producto_service)
@@ -49,12 +55,22 @@ def detalle_producto(id: int = Path(..., gt=0), svc: ProductoService = Depends(g
     producto = svc.obtener_por_id(id)
     return producto
 
-@router.put("/{id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def actualizar_producto(producto: ProductoUpdate, id: int = Path(..., gt=0), svc: ProductoService = Depends(get_producto_service)):
     actualizado = svc.actualizar(id, producto)
     return actualizado
 
-@router.put("/{id}/desactivar", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}/desactivar", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def borrado_logico(id: int = Path(..., gt=0), svc: ProductoService = Depends(get_producto_service)):
     desactivado = svc.deactive(producto_id=id)
     return desactivado
@@ -65,7 +81,12 @@ def consultar_stock(id: int = Path(..., gt=0), svc: ProductoService = Depends(ge
     return resultado
 
 # ─── Endpoints para la Relación N:M con Categorías ─────────────────────────
-@router.post("/{id}/categorias", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.post(
+    "/{id}/categorias", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def asignar_categoria(
     id: int, 
     body: ProductoCategoriaAssign, 
@@ -74,7 +95,12 @@ def asignar_categoria(
     producto = svc.agregar_categoria_a_producto(id, body.categoria_id, es_principal=body.es_principal)
     return producto
 
-@router.delete("/{id}/categorias/{categoria_id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{id}/categorias/{categoria_id}", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def remover_categoria(id: int, categoria_id: int, svc: ProductoService = Depends(get_producto_service)):
     producto = svc.remover_categoria_de_producto(id, categoria_id)
     if not producto:
@@ -82,7 +108,12 @@ def remover_categoria(id: int, categoria_id: int, svc: ProductoService = Depends
     return producto
 
 # ─── Nuevos Endpoints para la Relación N:M con Ingredientes ─────────────────
-@router.post("/{id}/ingredientes", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.post(
+    "/{id}/ingredientes", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def asignar_ingrediente(
     id: int, 
     body: ProductoIngredienteAssign, 
@@ -92,7 +123,12 @@ def asignar_ingrediente(
     producto = svc.agregar_ingrediente_a_producto(id, body.ingrediente_id, es_removible=body.es_removible)
     return producto
 
-@router.put("/{id}/ingredientes/{ingrediente_id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}/ingredientes/{ingrediente_id}", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def actualizar_ingrediente_removible(
     id: int, 
     ingrediente_id: int,
@@ -103,7 +139,12 @@ def actualizar_ingrediente_removible(
     producto = svc.actualizar_ingrediente_removible(id, ingrediente_id, es_removible)
     return producto
 
-@router.delete("/{id}/ingredientes/{ingrediente_id}", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{id}/ingredientes/{ingrediente_id}", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def remover_ingrediente(
     id: int, 
     ingrediente_id: int, 
@@ -113,7 +154,12 @@ def remover_ingrediente(
     producto = svc.remover_ingrediente_de_producto(id, ingrediente_id)
     return producto
 
-@router.put("/{id}/reactivar", response_model=ProductoRead, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{id}/reactivar", 
+    response_model=ProductoRead, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def reactivar_producto(
     id: int = Path(..., gt=0), 
     svc: ProductoService = Depends(get_producto_service)

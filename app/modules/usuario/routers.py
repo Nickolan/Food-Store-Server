@@ -22,9 +22,20 @@ def get_usuario_service(session: Session = Depends(get_session)) -> UsuarioServi
 )
 def registrar_usuario(
     usuario: schemas.UsuarioCreate,
+    response: Response,
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.registrar_usuario(usuario)
+    usuarioNuevo = svs.registrar_usuario(usuario)
+    token = svs.authenticate(usuario.email, usuario.password)
+    response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        max_age=1800,
+        samesite="lax",
+        secure=False,
+    )
+    return usuarioNuevo
 
 
 @router.post(
@@ -41,15 +52,14 @@ def login(
         key="access_token",
         value=token.access_token,
         httponly=True,
-        max_age=1800,  # 30 minutos, o el valor de expires_in
+        max_age=1800,
         samesite="lax",
-        secure=False,  # En producción con HTTPS debería ser True
+        secure=False,
     )
     return {"mensaje": "Login exitoso. Sesión iniciada."}
 
 @router.post("/logout")
 def logout(response: Response):
-    # Limpiar la cookie HttpOnly al cerrar sesión
     response.delete_cookie(
         key="access_token",
         httponly=True,
@@ -58,7 +68,6 @@ def logout(response: Response):
     )
     return {"mensaje": "Sesión cerrada exitosamente"}
 
-# ─── Rutas protegidas ────────────────────────────────────────────────────────
 
 @router.get("/me", response_model=schemas.UsuarioRead)
 def read_me(
@@ -90,6 +99,7 @@ def listar_roles(
     "/{id}/roles",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def asignar_rol_a_usuario(
     request: schemas.AsignarRolRequest,
@@ -108,6 +118,7 @@ def asignar_rol_a_usuario(
     "/{id}/roles/{rol_codigo}",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def remover_rol_de_usuario(
     rol_codigo: str,
@@ -117,15 +128,13 @@ def remover_rol_de_usuario(
     return svs.remover_rol(usuario_id=id, rol_codigo=rol_codigo)
 
 
-# ─── Rutas de administración (RBAC) ──────────────────────────────────────────
-
 @router.get(
     "/",
     response_model=schemas.UsuarioPaginadoResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def listar_usuarios(
-     _admin: Annotated[Usuario, Depends(require_roles(["admin"]))],
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     svs: UsuarioService = Depends(get_usuario_service),
@@ -137,6 +146,7 @@ def listar_usuarios(
     "/{id}",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def detalle_usuario(
     id: int = Path(..., gt=0),
@@ -149,6 +159,7 @@ def detalle_usuario(
     "/{id}",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def actualizar_usuario(
     usuario: schemas.UsuarioUpdate,
@@ -162,9 +173,9 @@ def actualizar_usuario(
     "/{id}",
     response_model=schemas.UsuarioRead,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def desactivar_usuario(
-     _admin: Annotated[Usuario, Depends(require_roles(["admin"]))],
     id: int = Path(..., gt=0),
     svs: UsuarioService = Depends(get_usuario_service),
 ):

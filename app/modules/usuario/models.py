@@ -4,7 +4,7 @@ from sqlalchemy import BigInteger, CHAR, Column, DateTime, String, ForeignKey, T
 from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
-    from app.modules.direccion.models import Direccion
+    from app.modules.direccionEntrega.models import DireccionEntrega
 
 
 class UsuarioRol(SQLModel, table=True):
@@ -92,6 +92,6 @@ class Usuario(SQLModel, table=True):
             "secondaryjoin": "Rol.codigo == UsuarioRol.rol_codigo"
         }
     )
-    # Relación con Direccion
-    direcciones: List["Direccion"] = Relationship(back_populates="usuario")
+    # Relación con DireccionEntrega
+    direcciones: List["DireccionEntrega"] = Relationship(back_populates="usuario")
     
