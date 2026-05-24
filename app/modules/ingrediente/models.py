@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, List
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlmodel import Field, Relationship, SQLModel
 from datetime import datetime
+from decimal import Decimal
 
 if TYPE_CHECKING:
     from app.modules.producto.models import Producto
@@ -29,6 +30,7 @@ class IngredienteProductoLink(SQLModel, table=True):
         )
     )
     es_removible: bool = Field(default=False, nullable=False)
+    cantidad: Decimal = Field(..., gt=0)
 
     unidad_medida_id: int = Field(foreign_key="unidad_medida.id")
     unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="producto_ingredientes")

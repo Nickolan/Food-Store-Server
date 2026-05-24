@@ -120,7 +120,13 @@ def asignar_ingrediente(
     svc: ProductoService = Depends(get_producto_service),
 ):
     """Asigna un ingrediente a un producto indicando si es removible"""
-    producto = svc.agregar_ingrediente_a_producto(id, body.ingrediente_id, es_removible=body.es_removible)
+    producto = svc.agregar_ingrediente_a_producto(
+        id, 
+        body.ingrediente_id, 
+        es_removible=body.es_removible,
+        cantidad=body.cantidad,
+        unidad_medida_id=body.unidad_medida_id
+    )
     return producto
 
 @router.put(
