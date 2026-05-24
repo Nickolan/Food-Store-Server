@@ -143,7 +143,7 @@ class PedidoService:
                     detalles_finales.append(detalle)
             pedido.subtotal=acumulado_subtotal
             descuento=pedido.descuento if pedido.descuento else Decimal("0.0")
-            pedido.costo_envio=Decimal("0.0") if pedido.forma_pago_codigo=="EFECTIVO" else Decimal("50.0") # si es efectivo el costo de envio es 0, sino 50
+            pedido.costo_envio=Decimal("0.0") if pedido.forma_pago_codigo=="EFECTIVO" else pedido.costo_envio # si es efectivo el costo de envio es 0, sino 50
             pedido.total=pedido.subtotal - descuento + pedido.costo_envio
             pedido.detalle=detalles_finales
             nuevo_pedido=uow.pedidos.add(pedido)
@@ -153,21 +153,26 @@ class PedidoService:
                 uow.productos.add(producto)
             self.avanzar_estado(uow=uow,pedido=nuevo_pedido,nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
             return PedidoRead.model_validate(nuevo_pedido)
-    
-    def obtener_pedidos_por_usuario(self, usuario_id:int, skip:int, limit:int)->List[PedidoRead]:
+    def obtener_lista(self, skip: int, limit: int, usuario_id: int, usuario_rol: Optional[str] = None) -> List[PedidoRead]:
         with self.uow as uow:
-            pedidos=uow.pedidos.obtener_por_usuario(usuario_id, skip, limit)
-            return [PedidoRead.model_validate(p) for p in pedidos]
-    def obtener_todos(self,skip:int,limit:int)->List[PedidoRead]:
-        with self.uow as uow:
-            pedidos=uow.pedidos.get_all(skip,limit)
+            if usuario_rol in ["ADMIN", "PEDIDOS"]:
+                pedidos = uow.pedidos.get_all(skip, limit)
+            else:
+                pedidos = uow.pedidos.obtener_por_usuario(usuario_id, skip, limit)
+                
             return [PedidoRead.model_validate(p) for p in pedidos]
     
-    def obtener_por_id(self,id:int)->Optional[PedidoRead]:
+    def obtener_por_id(self,id:int, usuario_id: int, usuario_rol: Optional[str] = None)->Optional[PedidoRead]:
         with self.uow as uow:
             pedido=uow.pedidos.get_by_id(id)
             if not pedido:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
+            if usuario_rol not in ["ADMIN", "PEDIDOS"]:
+             if pedido.usuario_id != usuario_id:
+                 raise HTTPException(
+                     status_code=status.HTTP_403_FORBIDDEN, 
+                     detail="No tenés permiso para acceder a este pedido. Solo podés acceder a tus propios pedidos."
+                 )
             return PedidoRead.model_validate(pedido)
     
     def actualizar(self,id:int,data:PedidoUpdate, usuario_rol:Optional[str])->Optional[PedidoRead]:
@@ -194,11 +199,14 @@ class PedidoService:
            pedido.updated_at = datetime.now()
            uow.pedidos.add(pedido)
            return PedidoRead.model_validate(pedido)
-    def obtener_historial(self,id:int)->List[HistorialEstadoPedidoRead]:
+    def obtener_historial(self,id:int, usuario_id: int, usuario_rol: Optional[str] = None)->List[HistorialEstadoPedidoRead]:
         with self.uow as uow:
             pedido=uow.pedidos.get_by_id(id)
             if not pedido:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
+            if usuario_rol not in ["ADMIN", "PEDIDOS"]:
+             if pedido.usuario_id != usuario_id:
+                 raise HTTPException(status_code=403, detail="No tenés permiso para acceder a este historial.")
             historiales=uow.historiales.obtener_por_pedido(id)
             return [HistorialEstadoPedidoRead.model_validate(h) for h in historiales]
     def cancelar_pedido(self,id:int, motivo:str, usuario_id:int, usuario_rol:str)->PedidoRead:

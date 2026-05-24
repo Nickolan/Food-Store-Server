@@ -1,4 +1,4 @@
-from typing import List, Annotated
+from typing import List, Annotated, Optional
 
 from sqlmodel import Session   
 
@@ -19,7 +19,7 @@ def get_service(session:Session=Depends(get_session)):
 @router.post(
     "/", 
     response_model=PedidoRead,
-    dependencies=[Depends(require_roles(["ADMIN", "CLIENT"]))],
+    dependencies=[Depends(require_roles(["ADMIN", "CLIENT", "PEDIDOS"]))],
 )
 def crear_pedido(current_user: Annotated[Usuario, Depends(get_current_user)],data:PedidoCreate, service:PedidoService=Depends(get_service)):
     return service.crear(data, current_user.id)
@@ -31,10 +31,13 @@ def crear_pedido(current_user: Annotated[Usuario, Depends(get_current_user)],dat
 )
 def obtener_pedidos(skip:Annotated[int, Query(ge=0, description="No puede ser negativo")] = 0, limit:Annotated[int, Query(gt=0, le=100, description="Mínimo 1, máximo 100")] = 100, service:PedidoService=Depends(get_service), current_user: Annotated[Usuario, Depends(get_current_user)]=None):
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
-        return service.obtener_pedidos_por_usuario(current_user.id, skip, limit)
+    if "ADMIN" in user_role_codes:
+        usuario_rol = "ADMIN"
+    elif "PEDIDOS" in user_role_codes:
+        usuario_rol = "PEDIDOS"
     else:
-     return service.obtener_todos(skip,limit)    
+        usuario_rol = user_role_codes[0] if user_role_codes else None
+    return service.obtener_lista(skip=skip, limit=limit, usuario_id=current_user.id, usuario_rol=usuario_rol)  
 
 @router.get(
     "/{id}", 
@@ -42,12 +45,15 @@ def obtener_pedidos(skip:Annotated[int, Query(ge=0, description="No puede ser ne
     dependencies=[Depends(require_roles(["ADMIN", "CLIENT", "PEDIDOS"]))],
 )
 def obtener_pedido_por_id(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
-    pedido=service.obtener_por_id(id)
-    user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
-        if pedido.usuario_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este pedido. Solo podes acceder a tus propios pedidos.")
-    return pedido
+      user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
+      if "ADMIN" in user_role_codes:
+        usuario_rol = "ADMIN"
+      elif "PEDIDOS" in user_role_codes:
+          usuario_rol = "PEDIDOS"
+      else:
+           usuario_rol = user_role_codes[0] if user_role_codes else None
+      return service.obtener_por_id(id, current_user.id, usuario_rol)
+
 
 @router.put("/{id}", response_model=PedidoRead, dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS"]))])
 def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")], data:PedidoUpdate, current_user: Annotated[Usuario, Depends(get_current_user)], service:PedidoService=Depends(get_service)):
@@ -60,14 +66,16 @@ def actualizar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", descr
         usuario_rol = user_role_codes[0] if user_role_codes else None
     return service.actualizar(id,data,usuario_rol)
 
-@router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead])
+@router.get("/{id}/historial", response_model=List[HistorialEstadoPedidoRead], dependencies=[Depends(require_roles(["ADMIN", "PEDIDOS", "CLIENT"]))])
 def obtener_historial_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", description="Debe ser mayor a 0")],current_user: Annotated[Usuario, Depends(get_current_user)] ,service:PedidoService=Depends(get_service)):
-    pedido=service.obtener_por_id(id)
     user_role_codes = [rol.codigo.upper() for rol in current_user.roles]
-    if not any(role in ["ADMIN", "PEDIDOS"] for role in user_role_codes):
-        if pedido.usuario_id != current_user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tenes permiso para acceder a este historial. Solo podes acceder al de aquellos pedidos que te pertenezcan.")
-    return service.obtener_historial(id)
+    if "ADMIN" in user_role_codes:
+        usuario_rol = "ADMIN"
+    elif "PEDIDOS" in user_role_codes:
+        usuario_rol = "PEDIDOS"
+    else:
+        usuario_rol = user_role_codes[0] if user_role_codes else None
+    return service.obtener_historial(id, current_user.id, usuario_rol)
 
 @router.delete(
     "/{id}", 
