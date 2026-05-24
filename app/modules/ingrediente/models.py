@@ -5,6 +5,7 @@ from datetime import datetime
 
 if TYPE_CHECKING:
     from app.modules.producto.models import Producto
+    from app.modules.unidad_medida.models import UnidadMedida
 
 
 class IngredienteProductoLink(SQLModel, table=True):
@@ -28,6 +29,9 @@ class IngredienteProductoLink(SQLModel, table=True):
         )
     )
     es_removible: bool = Field(default=False, nullable=False)
+
+    unidad_medida_id: int = Field(foreign_key="unidad_medida.id")
+    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="producto_ingredientes")
 
 class Ingrediente(SQLModel, table=True):
     """

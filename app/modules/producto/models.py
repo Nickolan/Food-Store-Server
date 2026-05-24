@@ -8,6 +8,7 @@ from app.modules.ingrediente.models import IngredienteProductoLink
 if TYPE_CHECKING:
     from app.modules.categoria.models import Categoria
     from app.modules.ingrediente.models import Ingrediente
+    from app.modules.unidad_medida.models import UnidadMedida
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Tabla de enlace N:M  →  Producto ↔ Categoria
@@ -63,6 +64,9 @@ class Producto(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     deleted_at: Optional[datetime] = Field(default=None, nullable=True)
+
+    unidad_venta_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
+    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="productos")
 
     # Relación N:M con Categoria via ProductoCategoriaLink
     categorias: List["Categoria"] = Relationship(
