@@ -1,7 +1,9 @@
 from typing import List, Optional
 from pydantic import Field
 from sqlmodel import SQLModel
+from decimal import Decimal
 from app.modules.ingrediente.schemas import IngredienteBasicRead
+from app.modules.unidad_medida.schemas import UnidadMedidaRead
 
 # ─── Base ──────────────────────────────────────────────────────────────────
 class ProductoBase(SQLModel):
@@ -18,9 +20,12 @@ class ProductoIngredienteCreate(SQLModel):
     """Schema para asociar un ingrediente al crear un producto"""
     ingrediente_id: int
     es_removible: bool = False
+    cantidad: Decimal = Field(..., gt=0)
+    unidad_medida_id: int = Field(..., gt=0)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 class ProductoCreate(ProductoBase):
+    unidad_venta_id: Optional[int] = None
     ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(default_factory=list, description="Lista de ingredientes con su propiedad removible")
 
 class ProductoUpdate(SQLModel):
@@ -31,12 +36,14 @@ class ProductoUpdate(SQLModel):
     stock_minimo: Optional[int] = Field(None, ge=0)
     imagenes_url: Optional[List[str]] = Field(None, examples=[["https://example.com/producto/pizza.jpg"]])
     disponible: Optional[bool] = None
+    unidad_venta_id: Optional[int] = None
     ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(None, description="Lista de ingredientes con su propiedad removible")
 
 # ─── Response schemas ──────────────────────────────────────────────────────
 class ProductoRead(ProductoBase):
     id: int
     activo: bool
+    unidad_medida: Optional[UnidadMedidaRead] = None
 
 class CategoriaBasicRead(SQLModel):
     """Schema reducido para evitar import circular."""
@@ -53,6 +60,8 @@ class CategoriaWithPrincipal(SQLModel):
 class IngredienteWithProductoInfo(SQLModel):
     ingrediente: IngredienteBasicRead
     es_removible: Optional[bool] = None
+    cantidad: Optional[Decimal] = None
+    unidad_medida_id: Optional[int] = None
 
 class ProductoReadFull(ProductoRead):
     """Producto con sus categorías e ingredientes anidados."""
@@ -79,6 +88,8 @@ class ProductoIngredienteAssign(SQLModel):
     """Schema para asignar ingrediente a producto existente"""
     ingrediente_id: int
     es_removible: bool = False
+    cantidad: Decimal = Field(..., gt=0)
+    unidad_medida_id: int = Field(..., gt=0)
 
 class ProductoIngredienteRemove(SQLModel):
     """Schema para remover ingrediente de producto"""

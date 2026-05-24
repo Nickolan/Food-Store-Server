@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
+from decimal import Decimal
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from sqlmodel import Session, select, func
@@ -92,7 +93,9 @@ class ProductoService:
                     uow.productos.link_ingrediente(
                         producto_id=nuevo.id, 
                         ingrediente_id=ing_data.ingrediente_id, 
-                        es_removible=ing_data.es_removible
+                        es_removible=ing_data.es_removible,
+                        cantidad=ing_data.cantidad,
+                        unidad_medida_id=ing_data.unidad_medida_id
                     )
             
             result = ProductoRead.model_validate(nuevo)
@@ -129,7 +132,9 @@ class ProductoService:
                 link = uow.productos.get_ingrediente_link(producto_id, ingrediente.id)
                 response_ingredientes.append(IngredienteWithProductoInfo(
                     ingrediente=ingrediente.model_dump(),
-                    es_removible=link.es_removible == True if link else False
+                    es_removible=link.es_removible == True if link else False,
+                    cantidad=link.cantidad if link else None,
+                    unidad_medida_id=link.unidad_medida_id if link else None
                 ))
 
             result = ProductoReadFull(
@@ -160,13 +165,13 @@ class ProductoService:
     
     # ─── Nuevos métodos para manejo de ingredientes ─────────────────────────
     
-    def agregar_ingrediente_a_producto(self, producto_id: int, ingrediente_id: int, es_removible: bool) -> ProductoRead:
+    def agregar_ingrediente_a_producto(self, producto_id: int, ingrediente_id: int, es_removible: bool, cantidad: Decimal, unidad_medida_id: int) -> ProductoRead:
         with ProductoUnitOfWork(self._session) as uow:
             self._assert_ingrediente_link_not_exists(uow, producto_id, ingrediente_id)
             self._get_ingrediente_or_404(uow, ingrediente_id)
             producto = self._get_full_or_404(uow, producto_id)
             
-            uow.productos.link_ingrediente(producto_id, ingrediente_id, es_removible)
+            uow.productos.link_ingrediente(producto_id, ingrediente_id, es_removible, cantidad, unidad_medida_id)
             result = ProductoRead.model_validate(producto)
         return result
     
@@ -243,7 +248,7 @@ class ProductoService:
                     uow.productos.unlink_ingrediente(producto_id, link.ingrediente_id)
                 # Recrear con los nuevos datos
                 for ing in data.ingredientes:
-                    uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible)
+                    uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible, ing.cantidad, ing.unidad_medida_id)
 
             uow.productos.add(producto)
             result = ProductoRead.model_validate(producto)
