@@ -15,6 +15,10 @@ from app.modules.direccionEntrega.models import DireccionEntrega
 from app.modules.modulo3.EstadoPedido.model import EstadoPedido
 from app.modules.modulo3.Formapago.model import FormaPago
 from app.modules.usuario.models import Rol, Usuario, UsuarioRol
+from app.modules.unidad_medida.models import UnidadMedida
+from app.modules.producto.models import Producto
+from app.modules.ingrediente.models import Ingrediente
+from app.modules.categoria.models import Categoria
 
 
 ROLES_BASE = [
@@ -53,6 +57,16 @@ FORMAS_PAGO = [
     ("MERCADOPAGO",   "Mercado Pago",           True),
     ("EFECTIVO",      "Efectivo",               True),
     ("TRANSFERENCIA", "Transferencia bancaria", True),
+]
+
+UNIDADES_MEDIDA = [
+    {"nombre": "kilogramo", "simbolo": "kg", "tipo": "masa"},
+    {"nombre": "gramo", "simbolo": "g", "tipo": "masa"},
+    {"nombre": "litro", "simbolo": "L", "tipo": "volumen"},
+    {"nombre": "mililitro", "simbolo": "mL", "tipo": "volumen"},
+    {"nombre": "pieza", "simbolo": "u", "tipo": "unidad"},
+    {"nombre": "docena", "simbolo": "doc", "tipo": "unidad"},
+    {"nombre": "metro cuadrado", "simbolo": "m^2", "tipo": "area"}
 ]
 
 
@@ -107,6 +121,17 @@ def _seed_formas_pago(session: Session) -> None:
     session.commit()
 
 
+def _seed_unidades_medida(session: Session) -> None:
+    for data in UNIDADES_MEDIDA:
+        existe = session.exec(select(UnidadMedida).where(UnidadMedida.simbolo == data["simbolo"])).first()
+        if not existe:
+            session.add(UnidadMedida(**data))
+            print(f" [+] UnidadMedida creada: {data['simbolo']}")
+        else:
+            print(f" [✓] UnidadMedida ya existe: {data['simbolo']}")
+    session.commit()
+
+
 def _seed_admin(session: Session) -> None:
     email_admin = "admin@admin.com"
     admin_user = session.exec(
@@ -153,6 +178,7 @@ def seed_db() -> None:
         _seed_roles(session)
         _seed_estados_pedido(session)
         _seed_formas_pago(session)
+        _seed_unidades_medida(session)
         _seed_admin(session)
 
     print("Seed finalizado con éxito.")
