@@ -45,6 +45,7 @@ class ProductoRepository(BaseRepository[Producto]):
             .where(Producto.id == producto_id)
             .options(selectinload(Producto.categorias))
             .options(selectinload(Producto.ingredientes))
+            .options(selectinload(Producto.unidad_medida))
         ).first()
     
     def count(self, nombre: str | None = None, activo: bool | None = None) -> int:

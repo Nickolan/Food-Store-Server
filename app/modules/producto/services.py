@@ -137,8 +137,17 @@ class ProductoService:
                     unidad_medida_id=link.unidad_medida_id if link else None
                 ))
 
+            print("Producto: ", producto)
+            unidad_medida = None
+            if producto.unidad_venta_id:
+                print("Obteniendo unidad de medida para ID: ", producto.unidad_venta_id)
+                unidad_medida = uow.unidad_medida.get_by_id(producto.unidad_venta_id)
+                print("Unidad de medida obtenida: ", unidad_medida)
+
+
             result = ProductoReadFull(
                 **producto.model_dump(),
+                unidad_medida=unidad_medida.model_dump() if unidad_medida else None,
                 ingredientes=response_ingredientes,
                 categorias=response_categorias
             )
