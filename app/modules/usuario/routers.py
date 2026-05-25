@@ -76,6 +76,19 @@ def read_me(
     return current_user
 
 
+@router.put(
+    "/me",
+    response_model=schemas.UsuarioRead,
+    status_code=status.HTTP_200_OK,
+)
+def actualizar_mis_datos(
+    usuario: schemas.UsuarioUpdate,
+    current_user: Annotated[Usuario, Depends(get_current_active_user)],
+    svs: UsuarioService = Depends(get_usuario_service),
+):
+    return svs.actualizar(current_user.id, usuario)
+
+
 @router.get("/privado")
 def ruta_privada(
     current_user: Annotated[Usuario, Depends(get_current_active_user)],
@@ -88,6 +101,7 @@ def ruta_privada(
     "/roles",
     response_model=List[schemas.RolRead],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
 )
 def listar_roles(
     svs: UsuarioService = Depends(get_usuario_service),

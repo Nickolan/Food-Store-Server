@@ -35,7 +35,10 @@ app = FastAPI(
         "Proyecto modular que demuestra las tres relaciones principales:\n\n"
         "- **1:N** Categoria → Productos (FK `categoria_id` en Producto, lado N)\n"
         "- **N:M** Producto ↔ Categoria via `ProductoCategoriaLink`\n"
-        "- **N:M** Producto ↔ Ingrediente via `IngredienteProductoLink`\n\n"
+        "- **N:M** Producto ↔ Ingrediente via `IngredienteProductoLink`\n"
+        "- **1:N** Usuario → Direcciones de entrega (un usuario puede tener varias)\n"
+        "- **N:M** Usuario ↔ Roles (asignación de permisos)\n"
+        "- **1:N** UnidadMedida → Productos e Ingredientes (normalización de unidades)\n\n"
         "Cada módulo tiene sus propios modelos, esquemas, servicios y routers, "
     ),
     lifespan=lifespan,

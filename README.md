@@ -1,59 +1,82 @@
-# API de Gestión de Inventario Pro - FastAPI & Clean Architecture 🚀
+# 🚀 Sistema de Gestión Integral - FastAPI & Clean Architecture
 
-API RESTful de alto rendimiento diseñada para la gestión integral de productos, categorías e ingredientes. Este proyecto implementa **Patrones de Diseño Enterprise** para garantizar la escalabilidad, la integridad transaccional y un código desacoplado.
+Bienvenido al repositorio central de nuestra API RESTful de grado Enterprise. Este proyecto está diseñado desde cero para soportar la operativa compleja de un sistema de pedidos, control de inventario y logística de entregas, aplicando de forma estricta **Patrones de Arquitectura Limpia (Clean Architecture)**.
 
-## 🌟 Highlights Técnicos
+---
 
-* **Arquitectura por Capas:** Separación clara entre modelos, repositorios, servicios y controladores.
-* **Repository Pattern:** Abstracción de la lógica de acceso a datos mediante repositorios genéricos y específicos.
-* **Unit of Work (UoW):** Gestión de transacciones atómicas para asegurar la consistencia de la base de datos en operaciones complejas.
-* **Relaciones N:M Avanzadas:** Implementación de relaciones Muchos a Muchos con atributos adicionales en las tablas intermedias (ej. ingredientes removibles).
-* **Optimización de Consultas:** Estrategias para evitar el problema de N+1 y manejo eficiente de importaciones circulares en SQLModel.
+## 🏛️ Arquitectura y Patrones de Diseño
 
-## 🛠️ Tecnologías Utilizadas
+El código base se estructura separando responsabilidades de forma quirúrgica, logrando un sistema altamente testeable, escalable y tolerante a cambios técnicos:
 
-* **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
-* **ORM & Validación:** [SQLModel](https://sqlmodel.tiangolo.com/) (SQLAlchemy + Pydantic)
-* **Base de Datos:** Soporte para PostgreSQL y SQLite.
-* **Lenguaje:** Python 3.10+
+* **Clean/Hexagonal Architecture:** Lógica de negocio (Services) totalmente agnóstica de la capa de transporte HTTP (Routers) y de persistencia (Repositories).
+* **Repository Pattern Genérico:** Toda interacción con la base de datos pasa por una abstracción de repositorio que previene la fuga de detalles de SQLModel/SQLAlchemy hacia la lógica de la aplicación.
+* **Unit of Work (UoW):** Implementación del patrón transaccional por excelencia. Permite agrupar operaciones complejas (ej. *Crear pedido + Reducir stock + Notificar*) garantizando el principio ACID de forma atómica.
+* **Diseño Orientado al Dominio (DDD - Lite):** La estructura del código está dividida en dominios lógicos de negocio (`/modules`), asegurando alta cohesión.
 
-## 📁 Estructura del Proyecto
+---
 
-El proyecto sigue una organización modular por dominios (features):
+## 📦 Estructura de Dominios (Módulos)
 
-```text
-app/
-├── core/
-│   ├── database.py         # Configuración de DB y Session
-│   ├── repository.py       # BaseRepository genérico
-│   └── unit_of_work.py     # Clase base para gestión transaccional
-├── modules/
-│   ├── producto/
-│   │   ├── models.py       # Entidad Producto y Tabla Link N:M
-│   │   ├── repository.py   # Repositorio especializado
-│   │   ├── services.py     # Lógica de negocio
-│   │   └── router.py       # Endpoints
-│   ├── categoria/
-│   │   └── ...             # Estructura homóloga
-│   └── ingrediente/        # <--- Nuevo Módulo N:M
-│       ├── models.py       # Entidad e IngredienteProductoLink
-│       ├── repository.py
-│       └── unit_of_work.py
-└── main.py                 # Punto de entrada
-```
+### 1. 👥 Gestión de Usuarios y Roles (RBAC)
+Módulo encargado de la autenticación, seguridad y control de acceso.
+* **Seguridad:** Hasheo de contraseñas con `bcrypt` y validaciones robustas.
+* **Control de Roles:** Implementación de roles dinámicos mediante una relación muchos-a-muchos (`UsuarioRol`) con expiración temporal (`expires_at`).
+* **Soft Deletes:** Borrado lógico (`deleted_at`) preservando la integridad referencial para auditorías.
 
-✨ Funcionalidades Principales
-1. Gestión de Categorías (CRUD): Creación, listado, actualización total y borrado lógico.
+### 2. 📍 Logística y Direcciones de Entrega
+Gestión integral de los destinos de envío.
+* **Múltiples direcciones:** Un usuario puede tener múltiples direcciones con alias identificatorios ("Casa", "Trabajo").
+* **Geolocalización:** Soporte nativo para coordenadas precisas (`latitud` y `longitud`).
+* **Dirección predeterminada:** Uso de flag `es_principal` para optimizar flujos de checkout.
 
-2. Gestión de Productos (CRUD): Control detallado de productos incluyendo precio, stock y stock mínimo.
+### 3. 🍔 Catálogo de Productos y Categorías
+El núcleo del e-commerce.
+* **Productos:** Control exhaustivo de precios, visibilidad (`activo`, `disponible`), gestión de stock actual y stock mínimo para alertas tempranas.
+* **Categorías Múltiples (N:M):** Un producto puede cruzar diferentes categorías, estableciendo mediante `ProductoCategoriaLink` cuál es su categoría principal.
+* **Unidades de Medida:** Integración con entidades de medida estandarizadas (ej. KG, Litros).
 
-3. Relación N:M: * Un producto puede pertenecer a múltiples categorías.
+### 4. 🧀 Inventario Dinámico (Ingredientes)
+Control granular de la composición de los productos.
+* **Prevención de Riesgos:** Trazabilidad estricta de componentes mediante el flag `es_alergeno`.
+* **Personalización (N:M):** Relación avanzada `IngredienteProductoLink`. Permite indicar la dosis exacta de un ingrediente en un producto y si el cliente tiene la opción de removerlo (`es_removible`).
 
-    * Una categoría puede agrupar múltiples productos.
+### 5. 🛒 Sistema de Pedidos y Compras (Módulo 3)
+El motor transaccional del negocio.
+* **Snapshotting Financiero:** Los detalles del pedido guardan una "fotografía" inmutable de precios y nombres (`nombre_snapshot`, `precio_snapshot`). Garantiza que, si un producto cambia de precio mañana, el historial de facturación de hoy no se altera.
+* **Costos y Descuentos:** Manejo nativo de `costo_envio` y `descuento` a nivel cabecera.
+* **Personalización en tiempo real:** Los detalles de compra almacenan arreglos de personalización (`personalizacion: ARRAY`) para reflejar las alteraciones del cliente al pedido estándar (ej. sin cebolla).
 
-    * Endpoints dedicados para asignar y remover categorías de un producto específico.
+---
 
-4. Control de Stock: Endpoint específico de lógica de negocio para evaluar si un producto requiere reposición (alerta de stock bajo).
+## 🛠️ Stack Tecnológico
 
-5. Borrado Lógico: Las entidades no se eliminan físicamente de la base de datos, sino que cambian su estado activo a False para mantener la integridad histórica.
+| Capa | Tecnología | Propósito |
+| :--- | :--- | :--- |
+| **Framework Web** | [FastAPI](https://fastapi.tiangolo.com/) | Alto rendimiento, tipado estático, validación nativa y documentación Swagger autogenerada. |
+| **ORM & Validaciones**| [SQLModel](https://sqlmodel.tiangolo.com/) | Fusión perfecta entre SQLAlchemy 2.0 y Pydantic. |
+| **Base de Datos** | PostgreSQL / PostgreSQL Dialects | Soporte para tipos de datos complejos como `ARRAY`. |
+| **Testing** | `pytest` + `pytest-asyncio` | Suite de pruebas asíncronas para validación de servicios y repositorios. |
+| **Seguridad** | `passlib` + `python-jose` | Gestión robusta de JWT y hashing seguro de credenciales. |
 
+---
+
+## 🚀 Puesta en Marcha
+
+1. **Clonar repositorio e instalar dependencias:**
+   Recomendamos usar un entorno virtual.
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # En Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2. **Configurar el entorno:**
+   Verificar el archivo `.env` o la configuración de conexión a la base de datos PostgreSQL.
+
+3. **Ejecutar el servidor de desarrollo:**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+4. **Explorar la API:**
+   Ingresa a `http://localhost:8000/docs` para visualizar y probar la interfaz Swagger UI autogenerada.

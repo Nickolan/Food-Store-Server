@@ -50,7 +50,12 @@ def agregar_categoria_padre(
 ):
     return svs.agregar_categoria_padre(id, parent_id)
 
-@router.get("/{id}", response_model=schemas.CategoriaReadFull, status_code=status.HTTP_200_OK)
+@router.get(
+    "/{id}", 
+    response_model=schemas.CategoriaReadFull, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
+)
 def detalle_categoria(id: int = Path(..., gt=0), svs: CategoriaService = Depends(get_categoria_service)):
     return svs.obtener_por_id(id)
 

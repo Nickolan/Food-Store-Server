@@ -75,7 +75,12 @@ def borrado_logico(id: int = Path(..., gt=0), svc: ProductoService = Depends(get
     desactivado = svc.deactive(producto_id=id)
     return desactivado
 
-@router.get("/{id}/stock", response_model=ProductoStockResponse, status_code=status.HTTP_200_OK)
+@router.get(
+    "/{id}/stock", 
+    response_model=ProductoStockResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
 def consultar_stock(id: int = Path(..., gt=0), svc: ProductoService = Depends(get_producto_service)):
     resultado = svc.obtener_estado_stock(id)
     return resultado
