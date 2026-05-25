@@ -4,6 +4,17 @@ Bienvenido al repositorio central de nuestra API RESTful de grado Enterprise. Es
 
 ---
 
+## Equipo y Entregables (Examen)
+
+- **Nombre del equipo:** Equipo BOT
+- **Integrantes:**
+   - **1:** Nicolas Navarrete
+   - **2:** Lautaro Ferreria
+   - **3:** Rafael Navarro
+   - **4:** Lucas Gordillo
+- **Video (demostración):** [Enlace al video](https://drive.google.com/drive/folders/1n_cFn1rpYdJr5lxDtNeoFVYwZ87M9CdJ?usp=sharing)
+
+
 ## 🏛️ Arquitectura y Patrones de Diseño
 
 El código base se estructura separando responsabilidades de forma quirúrgica, logrando un sistema altamente testeable, escalable y tolerante a cambios técnicos:
