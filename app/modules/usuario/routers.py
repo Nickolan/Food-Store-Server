@@ -34,6 +34,7 @@ def registrar_usuario(
         max_age=1800,
         samesite="lax",
         secure=False,
+        path="/"
     )
     return usuarioNuevo
 
@@ -55,6 +56,7 @@ def login(
         max_age=1800,
         samesite="lax",
         secure=False,
+        path="/"
     )
     return {"mensaje": "Login exitoso. Sesión iniciada."}
 
@@ -65,6 +67,7 @@ def logout(response: Response):
         httponly=True,
         samesite="lax",
         secure=False,
+        path="/"
     )
     return {"mensaje": "Sesión cerrada exitosamente"}
 
