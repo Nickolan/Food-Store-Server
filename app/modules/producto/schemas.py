@@ -27,6 +27,7 @@ class ProductoIngredienteCreate(SQLModel):
 class ProductoCreate(ProductoBase):
     unidad_venta_id: Optional[int] = None
     ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(default_factory=list, description="Lista de ingredientes con su propiedad removible")
+    categorias_ids: Optional[List[int]] = Field(default_factory=list, description="IDs de categorías a las que pertenece el producto")
 
 class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(None, examples=["Cerveza Quilmes"])
@@ -38,6 +39,7 @@ class ProductoUpdate(SQLModel):
     disponible: Optional[bool] = None
     unidad_venta_id: Optional[int] = None
     ingredientes: Optional[List[ProductoIngredienteCreate]] = Field(None, description="Lista de ingredientes con su propiedad removible")
+    categorias_ids: Optional[List[int]] = Field(None, description="IDs de categorías a las que pertenece el producto")
 
 # ─── Response schemas ──────────────────────────────────────────────────────
 class ProductoRead(ProductoBase):
