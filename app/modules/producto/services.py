@@ -79,7 +79,7 @@ class ProductoService:
     def crear(self, data: ProductoCreate) -> ProductoRead:
         with ProductoUnitOfWork(self._session) as uow:
             # Crear producto base
-            nuevo = Producto.model_validate(data.dict(exclude={'ingredientes'}))
+            nuevo = Producto.model_validate(data.dict(exclude={'ingredientes', 'categorias_ids'}))
             print("Nuevo producto: ", nuevo)
             uow.productos.add(nuevo)
             uow.flush()  # Para obtener el ID del producto
@@ -97,7 +97,17 @@ class ProductoService:
                         cantidad=ing_data.cantidad,
                         unidad_medida_id=ing_data.unidad_medida_id
                     )
-            
+            if data.categorias_ids:
+                for categoria_id in data.categorias_ids:
+                    # Verificar que la categoría existe
+                    categoria = self._get_categoria_or_404(uow, categoria_id)
+                    # Crear link (por defecto no es principal al crear)
+                    uow.productos.link_categoria(
+                        producto_id=nuevo.id,
+                        categoria_id=categoria_id,
+                        es_principal=False
+                    )
+
             result = ProductoRead.model_validate(nuevo)
             print("Producto creado: ", result)
         return result
@@ -236,6 +246,9 @@ class ProductoService:
             categoria = self._get_categoria_or_404(uow, categoria_id)
 
             if categoria in producto.categorias:
+                uow.productos.unlink_categoria(producto_id, categoria_id)
+            
+            if categoria_id in [c.id for c in producto.categorias]:
                 uow.productos.unlink_categoria(producto_id, categoria_id)
 
             result = ProductoRead.model_validate(producto)

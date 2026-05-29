@@ -78,7 +78,7 @@ class ProductoRepository(BaseRepository[Producto]):
     def link_categoria(self, producto_id: int, categoria_id: int, es_principal: bool) -> ProductoCategoriaLink:
         link = ProductoCategoriaLink(producto_id=producto_id, categoria_id=categoria_id, es_principal=es_principal)
         self.session.add(link)
-        self.session.commit()
+        self.session.flush()
         self.session.refresh(link)
         return link
     
