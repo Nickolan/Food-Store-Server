@@ -98,6 +98,7 @@ class ProductoService:
                         unidad_medida_id=ing_data.unidad_medida_id
                     )
             if data.categorias_ids:
+                print("Asignando categorías al producto: ", data.categorias_ids)
                 for categoria_id in data.categorias_ids:
                     # Verificar que la categoría existe
                     categoria = self._get_categoria_or_404(uow, categoria_id)
@@ -258,19 +259,23 @@ class ProductoService:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
 
-            # Actualizar campos básicos
-            update_data = data.dict(exclude_unset=True, exclude={'ingredientes'})
+            update_data = data.dict(exclude_unset=True, exclude={'ingredientes', 'categorias_ids'})
             for field, value in update_data.items():
                 setattr(producto, field, value)
 
-            # Si se enviaron ingredientes, actualizar la lista
             if data.ingredientes is not None:
-            # Borrar todos los links existentes
                 for link in uow.productos.get_all_ingrediente_links(producto_id):
                     uow.productos.unlink_ingrediente(producto_id, link.ingrediente_id)
-                # Recrear con los nuevos datos
                 for ing in data.ingredientes:
                     uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible, ing.cantidad, ing.unidad_medida_id)
+
+            if data.categorias_ids is not None:
+                for categoria in producto.categorias:
+                    uow.productos.unlink_categoria(producto_id, categoria.id)
+                
+                for cat_id in data.categorias_ids:
+                    self._get_categoria_or_404(uow, cat_id) 
+                    uow.productos.link_categoria(producto_id, cat_id, es_principal=False)
 
             uow.productos.add(producto)
             result = ProductoRead.model_validate(producto)
