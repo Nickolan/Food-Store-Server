@@ -123,7 +123,6 @@ class CategoriaService:
     
     def desactivar(self, categoria_id: int) -> Optional[Categoria]:
         with CategoriaUnitOfWork(self._session) as uow:
-            # First ensure the category exists
             categoria = self._get_or_404(uow, categoria_id)
             
             def _desactivar_recursivo(cat_id: int):

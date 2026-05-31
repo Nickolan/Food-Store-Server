@@ -1,10 +1,10 @@
-from app.core.repository import BaseUnitOfWork
+from app.core.unit_of_work import UnitOfWork
 from app.modules.modulo3.HistorialEstadoPedido.repository import HistorialEstadoPedidoRepository
 from app.modules.modulo3.Pedido.repository import PedidoRepository
 from .repository import PagoRepository
 
 
-class PagoUnitOfWork(BaseUnitOfWork):
+class PagoUnitOfWork(UnitOfWork):
     def __enter__(self):
         super().__enter__()
         self.pagos=PagoRepository(self._session)

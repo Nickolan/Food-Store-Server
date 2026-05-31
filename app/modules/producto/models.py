@@ -10,9 +10,6 @@ if TYPE_CHECKING:
     from app.modules.ingrediente.models import Ingrediente
     from app.modules.unidad_medida.models import UnidadMedida
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Tabla de enlace N:M  →  Producto ↔ Categoria
-# ─────────────────────────────────────────────────────────────────────────────
 class ProductoCategoriaLink(SQLModel, table=True):
     """
     Relación N:M entre Producto y Categoria.
@@ -41,9 +38,6 @@ class ProductoCategoriaLink(SQLModel, table=True):
 
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Producto
-# ─────────────────────────────────────────────────────────────────────────────
 class Producto(SQLModel, table=True):
     """
     Entidad Producto.

@@ -4,7 +4,6 @@ from pydantic import Field
 from sqlmodel import SQLModel
 from decimal import Decimal
 
-# ─── Base ──────────────────────────────────────────────────────────────────
 
 class DireccionBase(SQLModel):
     alias: Optional[str] = Field(max_length=50, default=None, examples=["Casa", "Oficina"])
@@ -16,8 +15,6 @@ class DireccionBase(SQLModel):
     latitud: Optional[Decimal] = Field(max_digits=9, decimal_places=6, default=None, examples=["-34.603722"])
     longitud: Optional[Decimal] = Field(max_digits=9, decimal_places=6, default=None, examples=["-58.381592"])
     es_principal: bool = Field(default=False, nullable=False)
-
-# ─── Request schemas ───────────────────────────────────────────────────────
 
 class DireccionCreate(DireccionBase):
     pass
@@ -37,7 +34,6 @@ class DireccionUpdate(SQLModel):
 class DireccionPrincipalUpdate(SQLModel):
     direccion_id: int = Field(gt=0)
 
-# ─── Response schemas ──────────────────────────────────────────────────────
 
 class DireccionRead(DireccionBase):
     id: int
