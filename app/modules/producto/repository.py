@@ -86,7 +86,7 @@ class ProductoRepository(BaseRepository[Producto]):
         link = self.get_link(producto_id, categoria_id)
         if link:
             self.session.delete(link)
-            self.session.commit()
+            self.session.flush()
 
     # ─── Ingrediente link helpers ────────────────────────────────────────
 
