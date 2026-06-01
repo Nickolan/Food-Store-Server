@@ -249,9 +249,6 @@ class ProductoService:
             if categoria in producto.categorias:
                 uow.productos.unlink_categoria(producto_id, categoria_id)
             
-            if categoria_id in [c.id for c in producto.categorias]:
-                uow.productos.unlink_categoria(producto_id, categoria_id)
-
             result = ProductoRead.model_validate(producto)
         return result
     

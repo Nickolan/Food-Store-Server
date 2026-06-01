@@ -26,7 +26,7 @@ class UnidadMedidaService:
         with UnidadMedidaUnitOfWork(self._session) as uow:
             nuevo = UnidadMedida(**data.model_dump())
             uow.unidades_medida.add(nuevo)
-            uow.commit()
+            uow.flush()
             self._session.refresh(nuevo)
             return UnidadMedidaRead.model_validate(nuevo)
 
@@ -49,7 +49,7 @@ class UnidadMedidaService:
             for key, value in cambios.items():
                 setattr(unidad, key, value)
             uow.unidades_medida.add(unidad)
-            uow.commit()
+            uow.flush()
             self._session.refresh(unidad)
             return UnidadMedidaRead.model_validate(unidad)
 
@@ -57,4 +57,4 @@ class UnidadMedidaService:
         with UnidadMedidaUnitOfWork(self._session) as uow:
             unidad = self._get_or_404(uow, unidad_id)
             uow.unidades_medida.delete(unidad)
-            uow.commit()
+            uow.flush()

@@ -29,7 +29,7 @@ class DireccionService:
             )
         return direccion
 
-    # Asegura que el usuario tenga al menos una dirección principal
+    
     def _ensure_one_principal(self, uow: DireccionUoW, usuario_id: int, direccion_actual: Optional[DireccionEntrega] = None) -> None:
         """Asegura que el usuario tenga al menos una dirección principal"""
         direcciones = uow.direcciones.get_all_by_usuario(usuario_id)
