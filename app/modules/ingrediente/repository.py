@@ -50,7 +50,7 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         link = IngredienteProductoLink(ingrediente_id=ingrediente_id, producto_id=producto_id, es_removible=es_removible)
         self.session.add(link)
         self.session.flush()
-        session.refresh(link)
+        self.session.refresh(link)
         return link
     
     def unlink_producto(self, ingrediente_id: int, producto_id: int) -> None:
