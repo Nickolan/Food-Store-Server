@@ -91,7 +91,7 @@ class UsuarioService:
             )
             uow.usuario_roles.add(asignacion_rol)
 
-            uow.commit()
+            uow.flush()
             self._session.refresh(nuevo)  # para cargar relaciones y datos actualizados
             result = UsuarioRead.model_validate(nuevo)
         return result
@@ -117,7 +117,7 @@ class UsuarioService:
                 setattr(usuario, key, value)
             usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
-            uow.commit()
+            uow.flush()
             result = UsuarioRead.model_validate(usuario)
         return result
 
@@ -127,7 +127,7 @@ class UsuarioService:
             usuario.deleted_at = datetime.utcnow()
             usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
-            uow.commit()
+            uow.flush()
             result = UsuarioRead.model_validate(usuario)
         return result
     
@@ -156,7 +156,7 @@ class UsuarioService:
             )
             
             self._session.add(nueva_asignacion)
-            uow.commit()
+            uow.flush()
             self._session.refresh(usuario) 
             
             result = UsuarioRead.model_validate(usuario)
@@ -174,7 +174,7 @@ class UsuarioService:
                 )
 
             self._session.delete(asignacion)
-            uow.commit()
+            uow.flush()
             self._session.refresh(usuario) 
             
             result = UsuarioRead.model_validate(usuario)
