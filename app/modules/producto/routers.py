@@ -178,3 +178,17 @@ def reactivar_producto(
     """Reactivar un producto previamente desactivado"""
     reactivado = svc.reactivar(producto_id=id)
     return reactivado
+
+
+@router.get(
+    "/{id}/categoria",
+    response_model=ProductoPaginadoResponse,
+    status_code=status.HTTP_200_OK,
+)
+def obtener_producto_por_categoria(
+    id: int = Path(..., gt=0), 
+    svc: ProductoService = Depends(get_producto_service)
+):
+    print(f"Obteniendo productos por categoría con ID: {id}")
+    producto = svc.obtener_producto_por_categoria(categoria_id=id)
+    return producto

@@ -286,3 +286,13 @@ class ProductoService:
             producto.updated_at = datetime.utcnow()
             uow.productos.add(producto)
         return producto
+    
+    def obtener_producto_por_categoria(self, categoria_id: int) -> ProductoPaginadoResponse:
+        with ProductoUnitOfWork(self._session) as uow:
+            categoria = self._get_categoria_or_404(uow, categoria_id)
+            productos = uow.productos.get_by_categoria(categoria_id)
+            result = [ProductoRead.model_validate(p) for p in productos]
+        return ProductoPaginadoResponse(
+            items=result,
+            total=len(result)
+        )
