@@ -14,9 +14,11 @@ class IngredienteBase(SQLModel):
 
     nombre: str = Field(..., min_length=3, examples=["Harina"])
 
-    descripcion: str = Field(..., min_length=3, examples=["Harina de trigo para repostería"])
+    descripcion: str = Field(default="", min_length=0, examples=["Harina de trigo para repostería"])
 
-    es_alergeno: bool = Field(default=False, nullable=True)
+    stock_cantidad: int = Field(default=0, ge=0, examples=[100])
+
+    es_alergeno: bool = Field(default=False)
 
     activo: bool = Field(default=True, nullable=False)
 
@@ -32,7 +34,9 @@ class IngredienteUpdate(SQLModel):
 
     nombre: Optional[str] = Field(None, min_length=3)
 
-    descripcion: Optional[str] = Field(None, min_length=3)
+    descripcion: Optional[str] = Field(None, min_length=0)
+
+    stock_cantidad: Optional[int] = Field(None, ge=0)
 
     es_alergeno: Optional[bool] = None
 
@@ -64,6 +68,7 @@ class IngredientePaginadoResponse(SQLModel):
 class IngredienteBasicRead(SQLModel):
     id: int
     nombre: str
+    stock_cantidad: int
     es_alergeno: bool
     activo: bool
     

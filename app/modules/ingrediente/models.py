@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Optional, List
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ForeignKey, Integer, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 from datetime import datetime
 from decimal import Decimal
@@ -44,9 +44,10 @@ class Ingrediente(SQLModel, table=True):
     __tablename__ = "ingrediente"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    nombre: str = Field(index=True)
-    descripcion: str
-    es_alergeno: bool = Field(default=False, nullable=True)
+    nombre: str = Field(index=True, unique=True)
+    descripcion: str = Field(default="")
+    stock_cantidad: int = Field(default=0, ge=0, nullable=False)
+    es_alergeno: bool = Field(default=False, nullable=False)
     
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)

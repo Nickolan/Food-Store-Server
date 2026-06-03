@@ -10,7 +10,7 @@ from .schemas import (
     ProductoRead, ProductoCreate, ProductoUpdate, 
     ProductoPaginadoResponse, ProductoReadFull, 
     CategoriaWithPrincipal, IngredienteWithProductoInfo,
-    ProductoIngredienteAssign
+    ProductoIngredienteAssign, ProductoIngredienteCreate
 )
 from app.modules.categoria.models import Categoria
 from app.modules.ingrediente.models import Ingrediente
@@ -73,11 +73,54 @@ class ProductoService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"El producto {producto_id} ya tiene asignado el ingrediente {ingrediente_id}."
             )
+
+    def _validar_stock_ingredientes(
+        self,
+        uof: ProductoUnitOfWork,
+        ingredientes: List[ProductoIngredienteCreate],
+    ) -> None:
+        """
+        Valida que haya stock suficiente para cada ingrediente requerido.
+        Recolecta TODOS los faltantes antes de lanzar la excepción,
+        para que el cliente vea el problema completo de una sola vez.
+        """
+        faltantes = []
+
+        for ing_data in ingredientes:
+            ingrediente = uof.ingredientes.get_by_id(ing_data.ingrediente_id)
+
+            if not ingrediente:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Ingrediente con ID {ing_data.ingrediente_id} no encontrado."
+                )
+
+            if ingrediente.stock_cantidad < ing_data.cantidad:
+                faltantes.append({
+                    "ingrediente_id": ingrediente.id,
+                    "nombre": ingrediente.nombre,
+                    "stock_disponible": ingrediente.stock_cantidad,
+                    "cantidad_requerida": float(ing_data.cantidad),
+                    "faltante": float(ing_data.cantidad - ingrediente.stock_cantidad),
+                })
+
+        if faltantes:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "mensaje": "Stock insuficiente para uno o más ingredientes.",
+                    "ingredientes_sin_stock": faltantes,
+                },
+            )
     
     # Casos de uso
 
     def crear(self, data: ProductoCreate) -> ProductoRead:
         with ProductoUnitOfWork(self._session) as uow:
+            # Validar stock de ingredientes ANTES de cualquier INSERT
+            if data.ingredientes:
+                self._validar_stock_ingredientes(uow, data.ingredientes)
+
             # Crear producto base
             nuevo = Producto.model_validate(data.dict(exclude={'ingredientes', 'categorias_ids'}))
             print("Nuevo producto: ", nuevo)
