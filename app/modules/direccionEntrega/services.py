@@ -86,7 +86,7 @@ class DireccionService:
             for key, value in update_data.items():
                 setattr(direccion, key, value)
             
-            direccion.updated_at = datetime.utcnow()
+            direccion.updated_at = datetime.now(datetime.UTC)
             uow.direcciones.add(direccion)
             
             self._ensure_one_principal(uow, usuario_id, direccion)
@@ -107,7 +107,7 @@ class DireccionService:
             
             was_principal = direccion.es_principal
             
-            direccion.deleted_at = datetime.utcnow()
+            direccion.deleted_at = datetime.now(datetime.UTC)
             uow.direcciones.add(direccion)
             
             if was_principal:
@@ -120,7 +120,7 @@ class DireccionService:
             if not direccion.es_principal:
                 uow.direcciones.reset_principal_flag(usuario_id)
                 direccion.es_principal = True
-                direccion.updated_at = datetime.utcnow()
+                direccion.updated_at = datetime.now(datetime.UTC)
                 uow.direcciones.add(direccion)
 
             result = DireccionRead.model_validate(direccion)

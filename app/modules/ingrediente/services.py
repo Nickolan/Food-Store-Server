@@ -238,7 +238,7 @@ class IngredienteService:
 
                 setattr(ingrediente, key, value)
 
-            ingrediente.updated_at = datetime.utcnow()
+            ingrediente.updated_at = datetime.now(datetime.UTC)
 
             uow.ingredientes.add(ingrediente)
 
@@ -264,7 +264,7 @@ class IngredienteService:
 
             ingrediente.activo = False
 
-            ingrediente.updated_at = datetime.utcnow()
+            ingrediente.updated_at = datetime.now(datetime.UTC)
 
             uow.ingredientes.add(ingrediente)
 
