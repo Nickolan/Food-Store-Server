@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from sqlmodel import SQLModel
 from app.core.database import engine
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.rate_limiter import RateLimitMiddleware  
 
 from app.modules.categoria.models import Categoria 
 from app.modules.producto.models import Producto, ProductoCategoriaLink
@@ -18,6 +19,7 @@ from app.modules.usuario.routers import router as usuario_router
 from app.modules.direccionEntrega.routers import router as direccion_router
 from app.modules.modulo3.Pedido.router import router as pedido_router
 from app.modules.unidad_medida.routers import router as unidad_medida_router
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -44,6 +46,7 @@ app = FastAPI(
     lifespan=lifespan,
     redirect_slashes=False,
 )
+app.add_middleware(RateLimitMiddleware, max_attempts=5, window_seconds=900)
 
 app.add_middleware(
     CORSMiddleware,

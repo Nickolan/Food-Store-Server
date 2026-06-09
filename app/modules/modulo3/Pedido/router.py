@@ -19,6 +19,7 @@ def get_service(session:Session=Depends(get_session)):
 @router.post(
     "/", 
     response_model=PedidoRead,
+    status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_roles(["ADMIN", "CLIENT"]))],
 )
 def crear_pedido(current_user: Annotated[Usuario, Depends(get_current_user)],data:PedidoCreate, service:PedidoService=Depends(get_service)):
