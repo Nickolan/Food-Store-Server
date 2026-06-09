@@ -17,6 +17,7 @@ from app.modules.ingrediente.routers import router as ingrediente_router
 from app.modules.usuario.routers import router as usuario_router
 from app.modules.direccionEntrega.routers import router as direccion_router
 from app.modules.modulo3.Pedido.router import router as pedido_router
+from app.modules.modulo3.Pago.router import router as pago_router
 from app.modules.unidad_medida.routers import router as unidad_medida_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -59,4 +60,5 @@ app.include_router(ingrediente_router)
 app.include_router(usuario_router)
 app.include_router(direccion_router)
 app.include_router(pedido_router)
+app.include_router(pago_router)
 app.include_router(unidad_medida_router)

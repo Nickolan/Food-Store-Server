@@ -13,10 +13,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # ─── Base de datos (PostgreSQL — patrón u_05_v2) ──────────────────────────
     postgres_user:     str = "postgres"
-    postgres_password: str = "password"
-    postgres_db:       str = "seguridad_jwt_db"
+    postgres_password: str = "tutuca05"
+    postgres_db:       str = "db_parcial_python"
     postgres_host:     str = "localhost"
-    postgres_port:     int = 5433
+    postgres_port:     int = 5432
 
     @computed_field
     @property
@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str                    # Obligatorio — sin default. Mínimo 32 chars.
     ALGORITHM:  str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # ─── Mercado Pago ─────────────────────────────────────────────────────────
+    MP_ACCESS_TOKEN: str
+    MP_WEBHOOK_SECRET: str
+    FRONTEND_URL: str = "http://localhost:5173"
 
     model_config = {
         "env_file":          ".env",
