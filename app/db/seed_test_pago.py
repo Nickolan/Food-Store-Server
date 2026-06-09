@@ -22,25 +22,29 @@ def run_seed_test_pago():
             """), {"id": dir_id, "uid": usuario_id})
 
             # 3. Insert categoria
-            cat_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM categoria")).scalar()
-            conn.execute(text("""
-                INSERT INTO categoria (id, nombre, descripcion, activo, created_at, updated_at) 
-                VALUES (:id, 'Hamb Test', 'test', true, NOW(), NOW())
-            """), {"id": cat_id})
+            cat_id = conn.execute(text("SELECT id FROM categoria WHERE nombre = 'Hamb Test' LIMIT 1")).scalar()
+            if not cat_id:
+                cat_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM categoria")).scalar()
+                conn.execute(text("""
+                    INSERT INTO categoria (id, nombre, descripcion, activo, created_at, updated_at) 
+                    VALUES (:id, 'Hamb Test', 'test', true, NOW(), NOW())
+                """), {"id": cat_id})
 
             # 4. Insert producto
-            prod_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM producto")).scalar()
-            # NO incluye unidad_venta_id para evitar el error
-            conn.execute(text("""
-                INSERT INTO producto (id, nombre, descripcion, precio_base, stock, stock_minimo, activo, disponible, created_at, updated_at) 
-                VALUES (:id, 'Hamb MP', 'Hamb', 1500.00, 100, 10, true, true, NOW(), NOW())
-            """), {"id": prod_id})
+            prod_id = conn.execute(text("SELECT id FROM producto WHERE nombre = 'Hamb MP' LIMIT 1")).scalar()
+            if not prod_id:
+                prod_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM producto")).scalar()
+                # NO incluye unidad_venta_id para evitar el error
+                conn.execute(text("""
+                    INSERT INTO producto (id, nombre, descripcion, precio_base, stock, stock_minimo, activo, disponible, created_at, updated_at) 
+                    VALUES (:id, 'Hamb MP', 'Hamb', 1500.00, 100, 10, true, true, NOW(), NOW())
+                """), {"id": prod_id})
 
-            # Link prod-cat
-            conn.execute(text("""
-                INSERT INTO producto_categoria_link (producto_id, categoria_id, es_principal, created_at)
-                VALUES (:pid, :cid, true, NOW())
-            """), {"pid": prod_id, "cid": cat_id})
+                # Link prod-cat
+                conn.execute(text("""
+                    INSERT INTO producto_categoria_link (producto_id, categoria_id, es_principal, created_at)
+                    VALUES (:pid, :cid, true, NOW())
+                """), {"pid": prod_id, "cid": cat_id})
 
             # 5. Insert pedido
             ped_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM pedido")).scalar()
