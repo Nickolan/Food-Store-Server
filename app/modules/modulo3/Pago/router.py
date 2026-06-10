@@ -3,13 +3,16 @@ from typing import List, Annotated
 from app.modules.modulo3.Pago.schema import PagoCreate, PagoRead, PagoUpdate
 from app.modules.modulo3.Pago.unitOfWork import PagoUnitOfWork
 from app.modules.modulo3.Pago.service import PagoService 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, Request, Response
+import hmac
+import hashlib
+from app.core.config import settings
 from app.core.database import get_session
 from sqlmodel import Session
 from app.core.deps import get_current_user, require_roles
 from app.modules.usuario.models import Usuario
 
-router = APIRouter(prefix="/pagos", tags=["Pago"])
+router = APIRouter(prefix="/api/v1/pagos", tags=["Pago"])
 
 def get_service(session: Session = Depends(get_session)):
     uow = PagoUnitOfWork(session)
@@ -22,6 +25,25 @@ def get_service(session: Session = Depends(get_session)):
 )
 def crear_pago(data: PagoCreate, service: PagoService = Depends(get_service)):
     return service.crear(data)
+
+@router.post("/webhook")
+async def mp_webhook(request: Request, service: PagoService = Depends(get_service)):
+    # Mercado Pago puede mandar los IDs por query params (ej: ?data.id=123) o en el body
+    data_id = request.query_params.get("data.id")
+    
+    if not data_id:
+        # Intentar sacarlo del body si no está en la query
+        try:
+            data = await request.json()
+            data_id = data.get("data", {}).get("id")
+        except:
+            pass
+
+    if data_id:
+        # Se procesa el webhook de manera segura (el SDK va y le pregunta a MP si el pago es real)
+        service.procesar_webhook(data_id)
+        
+    return Response(status_code=200)
 
 @router.get(
     "/", 
