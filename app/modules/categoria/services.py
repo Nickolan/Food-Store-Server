@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from typing import List, Optional, Tuple
@@ -50,7 +50,7 @@ class CategoriaService:
                     existing.imagen_url = data.imagen_url
                 if data.parent_id is not None:
                     existing.parent_id = data.parent_id
-                existing.updated_at = datetime.now(datetime.UTC).isoformat()
+                existing.updated_at = datetime.now(timezone.utc).isoformat()
                 uow.categorias.add(existing)
                 result = CategoriaRead.model_validate(existing)
             else:
@@ -97,7 +97,7 @@ class CategoriaService:
             for key, value in categoria_data.items():
                 setattr(categoria, key, value)
 
-            categoria.updated_at = datetime.now(datetime.UTC).isoformat()
+            categoria.updated_at = datetime.now(timezone.utc).isoformat()
             uow.categorias.add(categoria)
         return categoria
     
@@ -117,7 +117,7 @@ class CategoriaService:
                     detail="No se puede asignar una subcategoría a una categoría inactiva o asignar una categoría inactiva como padre",
                 )
             categoria.parent_id = parent_id
-            categoria.updated_at = datetime.now(datetime.UTC).isoformat()
+            categoria.updated_at = datetime.now(timezone.utc).isoformat()
             uow.categorias.add(categoria)
         return categoria
     
@@ -131,7 +131,7 @@ class CategoriaService:
                 if not cat or cat.deleted_at:
                     return
                 cat.activo = False
-                cat.deleted_at = datetime.now(datetime.UTC).isoformat()
+                cat.deleted_at = datetime.now(timezone.utc).isoformat()
                 uow.categorias.add(cat)
                 
                 subs = uow.categorias.get_subcategorias(cat_id)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import BigInteger, CHAR, Column, DateTime, String, ForeignKey, Text
 from sqlmodel import Field, SQLModel, Relationship
@@ -27,7 +27,7 @@ class UsuarioRol(SQLModel, table=True):
     )
     
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False)
     )
 
@@ -72,11 +72,11 @@ class Usuario(SQLModel, table=True):
     password_hash: str = Field(sa_column=Column(CHAR(60), nullable=False))
 
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(datetime.UTC),
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
     deleted_at: Optional[datetime] = Field(

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import Column, BigInteger, Sequence
 from sqlmodel import Field, Relationship, SQLModel
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 if TYPE_CHECKING:
@@ -27,8 +27,8 @@ class DireccionEntrega(SQLModel, table=True):
     longitud: Optional[Decimal] = Field(max_digits=9, decimal_places=6, default=None)
     es_principal: bool = Field(default=False, nullable=False)
     
-    created_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC), nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     deleted_at: Optional[datetime] = Field(default=None, nullable=True)
     
     # Relación de composición 0..* --> 1 Usuario

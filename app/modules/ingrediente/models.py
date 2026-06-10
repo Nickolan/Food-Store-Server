@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional, List
 from sqlalchemy import Column, ForeignKey, Integer, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 if TYPE_CHECKING:
@@ -49,8 +49,8 @@ class Ingrediente(SQLModel, table=True):
     stock_cantidad: int = Field(default=0, ge=0, nullable=False)
     es_alergeno: bool = Field(default=False, nullable=False)
     
-    created_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC), nullable=False)
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(datetime.UTC), nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
     productos: List["Producto"] = Relationship(
         back_populates="ingredientes",
