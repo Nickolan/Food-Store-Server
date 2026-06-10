@@ -4,6 +4,7 @@ from app.modules.producto.repository import ProductoRepository
 from app.modules.usuario.repository import UsuarioRepository
 from app.modules.modulo3.EstadoPedido.repository import EstadoPedidoRepository
 from app.modules.modulo3.HistorialEstadoPedido.repository import HistorialEstadoPedidoRepository
+from app.modules.ingrediente.repository import IngredienteRepository
 from .repository import PedidoRepository
 from ..Formapago.repository import FormaPagoRepository
 
@@ -17,4 +18,5 @@ class PedidoUnitOfWork(UnitOfWork):
         self.historiales=HistorialEstadoPedidoRepository(self._session)
         self.productos = ProductoRepository(self._session)
         self.direcciones = DireccionEntregaRepository(self._session)
+        self.ingredientes= IngredienteRepository(self._session)
         return self

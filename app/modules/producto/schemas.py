@@ -10,7 +10,6 @@ class ProductoBase(SQLModel):
     nombre: str = Field(..., examples=["Cerveza Quilmes"])
     descripcion: str = Field(..., examples=["Cerveza rubia, ideal para acompañar una picada."])
     precio_base: float = Field(gt=0, examples=[150.50])
-    stock: int = Field(ge=0, examples=[20])
     stock_minimo: int = Field(ge=0, examples=[5])
     imagenes_url: List[str] = Field(default_factory=list, examples=[["https://example.com/producto/pizza.jpg"]])
     disponible: bool = True
@@ -33,7 +32,6 @@ class ProductoUpdate(SQLModel):
     nombre: Optional[str] = Field(None, examples=["Cerveza Quilmes"])
     descripcion: Optional[str] = Field(None, examples=["Cerveza rubia, ideal para acompañar una picada."])
     precio_base: Optional[float] = Field(None, gt=0)
-    stock: Optional[int] = Field(None, ge=0)
     stock_minimo: Optional[int] = Field(None, ge=0)
     imagenes_url: Optional[List[str]] = Field(None, examples=[["https://example.com/producto/pizza.jpg"]])
     disponible: Optional[bool] = None
@@ -67,6 +65,7 @@ class IngredienteWithProductoInfo(SQLModel):
 
 class ProductoReadFull(ProductoRead):
     """Producto con sus categorías e ingredientes anidados."""
+    stock: int = 0
     categorias: List[CategoriaWithPrincipal] = []
     ingredientes: List[IngredienteWithProductoInfo] = []
 

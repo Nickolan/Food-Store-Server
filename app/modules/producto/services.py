@@ -21,7 +21,6 @@ class ProductoService:
         self._session = session
 
     # Helpers privados
-
     def _get_or_404(self, uof: ProductoUnitOfWork, producto_id: int) -> Producto:
         producto = uof.productos.get_by_id(producto_id)
         if not producto:
@@ -112,7 +111,29 @@ class ProductoService:
                     "ingredientes_sin_stock": faltantes,
                 },
             )
-    
+    def calcular_stock_por_ingredientes(self,uow:ProductoUnitOfWork, producto_id:int) -> Optional[int]:
+        """
+    Calcula cuántas unidades del producto se pueden fabricar
+    según el stock actual de sus ingredientes.
+    Retorna None si el producto no tiene ingredientes (usar producto.stock como fallback).
+    """
+        links=uow.productos.get_all_ingrediente_links(producto_id)
+        if not links:
+            return None  # No hay ingredientes, no se puede calcular stock por ingredientes
+        minimo=None
+        for link in links:
+            if not link.cantidad or link.cantidad == 0:
+                continue  # Evitar división por cero
+            ingrediente=uow.ingredientes.get_by_id(link.ingrediente_id)
+            if not ingrediente:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Ingrediente con ID {link.ingrediente_id} no encontrado.")
+            fabricables=ingrediente.stock_cantidad // link.cantidad
+            if minimo is None or fabricables < minimo:
+                minimo = fabricables
+        return minimo if minimo is not None else 0
+   
     # Casos de uso
 
     def crear(self, data: ProductoCreate) -> ProductoRead:
@@ -198,9 +219,13 @@ class ProductoService:
                 unidad_medida = uow.unidad_medida.get_by_id(producto.unidad_venta_id)
                 print("Unidad de medida obtenida: ", unidad_medida)
 
-
+            stock_fabricable = self.calcular_stock_por_ingredientes(uow, producto_id)
+            stock_efectivo = stock_fabricable if stock_fabricable is not None else producto.stock
+            producto_dict = producto.model_dump()
+            producto_dict.pop('stock', None) 
             result = ProductoReadFull(
-                **producto.model_dump(),
+                **producto_dict,
+                stock=stock_efectivo,
                 unidad_medida=unidad_medida.model_dump() if unidad_medida else None,
                 ingredientes=response_ingredientes,
                 categorias=response_categorias
@@ -275,9 +300,11 @@ class ProductoService:
     def obtener_estado_stock(self, producto_id: int) -> Optional[dict]:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
-            alerta_stock = producto.stock < producto.stock_minimo
+            stock_fabricable = self.calcular_stock_por_ingredientes(uow, producto_id)
+            stock_efectivo= stock_fabricable if stock_fabricable is not None else producto.stock
+            alerta_stock = stock_efectivo < producto.stock_minimo
             result = {
-                "stock": producto.stock,
+                "stock": stock_efectivo,
                 "bajo_stock_minimo": alerta_stock,
                 "activo": producto.activo,
                 "disponible": producto.disponible

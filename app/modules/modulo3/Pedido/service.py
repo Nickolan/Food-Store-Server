@@ -9,6 +9,7 @@ from app.modules.modulo3.HistorialEstadoPedido.schema import HistorialEstadoPedi
 from app.modules.modulo3.Pedido.model import DetallePedido
 from app.modules.modulo3.Pedido.schema import PedidoCreate, PedidoRead, PedidoUpdate
 from app.modules.modulo3.Pedido.unitOfWork import PedidoUnitOfWork
+from app.modules.producto.services import ProductoService
 
 
 class PedidoService:
@@ -103,6 +104,7 @@ class PedidoService:
                     )
     def crear(self,data:PedidoCreate, usuario_id: int)->PedidoRead:
         with self.uow as uow:
+            productoService=ProductoService(self.uow._session)
             self.validar_entidades(uow,data, usuario_id)
             datos_pedido = data.model_dump(exclude={"items"})
             datos_pedido["estado_codigo"] = "PENDIENTE"
@@ -116,10 +118,12 @@ class PedidoService:
                     producto = uow.productos.get_by_id(item.producto_id)
                     if not producto or not producto.activo or not producto.disponible:
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El producto con el id {item.producto_id} no fue encontrado.")
-                    if item.cantidad > producto.stock:
+                    stock_fabricable = productoService.calcular_stock_por_ingredientes(uow, item.producto_id)
+                    stock_efectivo = stock_fabricable if stock_fabricable is not None else producto.stock
+                    if item.cantidad > stock_efectivo:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail=f"No hay suficiente stock para el producto {producto.nombre}. Stock disponible: {producto.stock}, cantidad solicitada: {item.cantidad}."
+                            detail=f"No hay suficiente stock para el producto {producto.nombre}. Stock disponible: {stock_fabricable}, cantidad solicitada: {item.cantidad}."
                         )
                     if item.personalizacion:
                         ids_personalizaciones=uow.productos.get_ingredientes_removibles(item.producto_id)
@@ -148,9 +152,11 @@ class PedidoService:
             pedido.detalle=detalles_finales
             nuevo_pedido=uow.pedidos.add(pedido)
             for detalle in detalles_finales:
-                producto = uow.productos.get_by_id(detalle.producto_id)
-                producto.stock -= detalle.cantidad
-                uow.productos.add(producto)
+                links = uow.productos.get_all_ingrediente_links(detalle.producto_id)
+                for link in links:
+                    ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+                    ingrediente.stock_cantidad -= link.cantidad * detalle.cantidad
+                    uow.ingredientes.add(ingrediente)
             self.avanzar_estado(uow=uow,pedido=nuevo_pedido,nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
             return PedidoRead.model_validate(nuevo_pedido)
     
