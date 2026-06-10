@@ -30,6 +30,14 @@ class UsuarioRepository(BaseRepository[Usuario]):
             ).all()
         )
 
+    def get_todos(self, offset: int = 0, limit: int = 20) -> list[Usuario]:
+        """Retorna todos los usuarios (activos e inactivos) para el panel de admin."""
+        stmt = select(Usuario).offset(offset).limit(limit)
+        return list(self.session.exec(stmt).all())
+
+    def count_todos(self) -> int:
+        return len(self.session.exec(select(Usuario)).all())
+
 
 class RolRepository(BaseRepository[Rol]):
 
