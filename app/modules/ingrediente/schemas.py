@@ -20,7 +20,7 @@ class IngredienteBase(SQLModel):
 
     es_alergeno: bool = Field(default=False)
 
-    activo: bool = Field(default=True, nullable=False)
+    activo: bool = Field(default=True)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ class IngredienteUpdate(SQLModel):
 
     es_alergeno: Optional[bool] = None
 
-    activo: bool = Field(default=True, nullable=False)
+    activo: bool = Field(default=True)
 
 
 

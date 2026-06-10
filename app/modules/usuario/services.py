@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
@@ -115,7 +115,7 @@ class UsuarioService:
             cambios = data.model_dump(exclude_unset=True)
             for key, value in cambios.items():
                 setattr(usuario, key, value)
-            usuario.updated_at = datetime.utcnow()
+            usuario.updated_at = datetime.now(timezone.utc)
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
@@ -124,8 +124,8 @@ class UsuarioService:
     def desactivar(self, usuario_id: int) -> UsuarioRead:
         with UsuarioUnitOfWork(self._session) as uow:
             usuario = self._get_or_404(uow, usuario_id)
-            usuario.deleted_at = datetime.utcnow()
-            usuario.updated_at = datetime.utcnow()
+            usuario.deleted_at = datetime.now(timezone.utc)
+            usuario.updated_at = datetime.now(timezone.utc)
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
