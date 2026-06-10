@@ -3,18 +3,20 @@ from typing import Optional
 from datetime import datetime
 
 from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import BigInteger, Column
 
 from app.modules.modulo3.Pedido.model import Pedido
 
 
 class PagoBase(SQLModel):
-    mp_payment_id: Optional[int] = Field(default=None, sa_column_kwargs={"unique": True})
+    mp_payment_id: Optional[int] = Field(default=None, sa_column=Column(BigInteger, unique=True))
     mp_status: str = Field(max_length=30, nullable=False)  
     mp_status_detail: Optional[str] = Field(default=None, max_length=100)  
     external_reference: str = Field(max_length=100, unique=True, nullable=False)
     idempotency_key: str = Field(max_length=100, unique=True, nullable=False)
     transaction_amount: Decimal = Field(max_digits=10, decimal_places=2, nullable=False)
-    payment_method_id: str = Field(max_length=50, nullable=False)
+    payment_method_id: Optional[str] = Field(default=None, max_length=50)
+    checkout_url: Optional[str] = Field(default=None, max_length=255)
 class Pago(PagoBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
 

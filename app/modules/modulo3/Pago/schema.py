@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional
 from .model import PagoBase
 from sqlmodel import Field, SQLModel
-class PagoCreate(PagoBase):
+class PagoCreate(SQLModel):
     pedido_id:int
 
 class PagoRead(PagoBase):

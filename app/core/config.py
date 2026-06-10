@@ -13,10 +13,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # ─── Base de datos (PostgreSQL — patrón u_05_v2) ──────────────────────────
     postgres_user:     str = "postgres"
-    postgres_password: str = "password"
-    postgres_db:       str = "seguridad_jwt_db"
+    postgres_password: str = "tutuca05"
+    postgres_db:       str = "db_parcial_python"
     postgres_host:     str = "localhost"
-    postgres_port:     int = 5433
+    postgres_port:     int = 5432
 
     @computed_field
     @property
@@ -34,6 +34,19 @@ class Settings(BaseSettings):
     SECRET_KEY: str                    # Obligatorio — sin default. Mínimo 32 chars.
     ALGORITHM:  str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # ─── CORS ──────────────────────────────────────────────────────────────────
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5176"
+
+    @computed_field
+    @property
+    def FRONTEND_URL(self) -> str:
+        return self.CORS_ORIGINS.split(",")[0].strip()
+
+    # ─── Mercado Pago ─────────────────────────────────────────────────────────
+    MP_ACCESS_TOKEN: str
+    MP_WEBHOOK_SECRET: str
+    MP_WEBHOOK_URL: str = ""
 
     model_config = {
         "env_file":          ".env",

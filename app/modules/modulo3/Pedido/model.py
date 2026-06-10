@@ -1,12 +1,12 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy.dialects.postgresql import ARRAY
 
-# from app.modules.modulo3.Pago.model import Pago POR AHORA NO SE USA
-
+if TYPE_CHECKING:
+    from app.modules.modulo3.Pago.model import Pago
 class PedidoBase(SQLModel):
     direccion_id: Optional[int] = Field(default=None, foreign_key="direccionEntrega.id", nullable=True)
     forma_pago_codigo: str = Field(foreign_key="formapago.codigo")
@@ -38,4 +38,4 @@ class Pedido(PedidoBase,table=True):
   deleted_at: Optional[datetime] = Field(default=None)
 
   detalle: List["DetallePedido"] = Relationship(back_populates="pedido")
-  # pagos: List["Pago"] = Relationship(back_populates="pedido")
+  pagos: List["Pago"] = Relationship(back_populates="pedido")
