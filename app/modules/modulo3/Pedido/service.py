@@ -105,7 +105,7 @@ class PedidoService:
         with self.uow as uow:
             self.validar_entidades(uow,data, usuario_id)
             datos_pedido = data.model_dump(exclude={"items"})
-            datos_pedido["estado_codigo"] = "PENDIENTE"
+            datos_pedido["estado_codigo"] = "CONFIRMADO" if data.forma_pago_codigo == "EFECTIVO" else "PENDIENTE"
             datos_pedido["usuario_id"] = usuario_id
             pedido = Pedido(**datos_pedido)
             acumulado_subtotal=Decimal("0.0")

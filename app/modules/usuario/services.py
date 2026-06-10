@@ -197,7 +197,14 @@ class UsuarioService:
             result = UsuarioRead.model_validate(usuario)
             
             roles_usuario = [rol.codigo for rol in usuario.roles]
-            
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
+
             access_token = create_access_token(
                 data={
                     "sub": usuario.email, 
@@ -238,6 +245,13 @@ class UsuarioService:
                         detail="El usuario está desactivado",
                     )
             roles_usuario = [rol.codigo for rol in usuario.roles]
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
             access_token = create_access_token(
                 data={"sub": usuario.email, 'id': usuario.id, "roles": roles_usuario}
             )

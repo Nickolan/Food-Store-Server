@@ -40,9 +40,9 @@ class PagoService:
                     }
                 ],
                 "back_urls": {
-                    "success": f"{settings.FRONTEND_URL}/success",
-                    "failure": f"{settings.FRONTEND_URL}/failure",
-                    "pending": f"{settings.FRONTEND_URL}/pending"
+                    "success": f"{settings.FRONTEND_URL}/success?pedido={pedido.id}",
+                    "failure": f"{settings.FRONTEND_URL}/failure?pedido={pedido.id}",
+                    "pending": f"{settings.FRONTEND_URL}/pending?pedido={pedido.id}"
                 },
                 "external_reference": external_reference
             }

@@ -35,10 +35,18 @@ class Settings(BaseSettings):
     ALGORITHM:  str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # ─── CORS ──────────────────────────────────────────────────────────────────
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5176"
+
+    @computed_field
+    @property
+    def FRONTEND_URL(self) -> str:
+        return self.CORS_ORIGINS.split(",")[0].strip()
+
     # ─── Mercado Pago ─────────────────────────────────────────────────────────
     MP_ACCESS_TOKEN: str
     MP_WEBHOOK_SECRET: str
-    FRONTEND_URL: str = "http://localhost:5173"
+    MP_WEBHOOK_URL: str = ""
 
     model_config = {
         "env_file":          ".env",

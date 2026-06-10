@@ -19,6 +19,7 @@ from app.modules.direccionEntrega.routers import router as direccion_router
 from app.modules.modulo3.Pedido.router import router as pedido_router
 from app.modules.modulo3.Pago.router import router as pago_router
 from app.modules.unidad_medida.routers import router as unidad_medida_router
+from app.core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -48,7 +49,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
