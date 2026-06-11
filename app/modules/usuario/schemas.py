@@ -47,6 +47,15 @@ class UsuarioRead(UsuarioBase):
     created_at: datetime
     updated_at: datetime
     roles: List[RolRead] = Field(default_factory=list)
+    disabled: bool = Field(default=False, description="True si el usuario fue desactivado por un admin")
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        # Mapear deleted_at → disabled antes de construir el modelo
+        instance = super().model_validate(obj, **kwargs)
+        if hasattr(obj, 'deleted_at'):
+            instance.disabled = obj.deleted_at is not None
+        return instance
 
 class UsuarioPaginadoResponse(SQLModel):
     total: int

@@ -202,3 +202,16 @@ def desactivar_usuario(
     svs: UsuarioService = Depends(get_usuario_service),
 ):
     return svs.desactivar(id)
+
+
+@router.patch(
+    "/{id}/activar",
+    response_model=schemas.UsuarioRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN"]))],
+)
+def reactivar_usuario(
+    id: int = Path(..., gt=0),
+    svs: UsuarioService = Depends(get_usuario_service),
+):
+    return svs.reactivar(id)

@@ -1,6 +1,6 @@
 from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import BIGINT, TIMESTAMP
 
@@ -20,8 +20,8 @@ class UnidadMedida(SQLModel, table=True):
     simbolo: str = Field(sa_column=Column(String(10), unique=True, nullable=False))
     tipo: str = Field(sa_column=Column(String(20), nullable=False))
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow)
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     )
 
     productos: List["Producto"] = Relationship(back_populates="unidad_medida")

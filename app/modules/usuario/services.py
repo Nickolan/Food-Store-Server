@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
@@ -98,8 +98,8 @@ class UsuarioService:
 
     def obtener_todos(self, offset: int = 0, limit: int = 20) -> UsuarioPaginadoResponse:
         with UsuarioUnitOfWork(self._session) as uow:
-            usuarios = uow.usuarios.get_activos(offset=offset, limit=limit)
-            total = uow.usuarios.count_activos()
+            usuarios = uow.usuarios.get_todos(offset=offset, limit=limit)
+            total = uow.usuarios.count_todos()
             items = [UsuarioRead.model_validate(u) for u in usuarios]
         return UsuarioPaginadoResponse(total=total, items=items)
 
@@ -115,7 +115,7 @@ class UsuarioService:
             cambios = data.model_dump(exclude_unset=True)
             for key, value in cambios.items():
                 setattr(usuario, key, value)
-            usuario.updated_at = datetime.utcnow()
+            usuario.updated_at = datetime.now(timezone.utc)
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
@@ -124,7 +124,23 @@ class UsuarioService:
     def desactivar(self, usuario_id: int) -> UsuarioRead:
         with UsuarioUnitOfWork(self._session) as uow:
             usuario = self._get_or_404(uow, usuario_id)
-            usuario.deleted_at = datetime.utcnow()
+            usuario.deleted_at = datetime.now(timezone.utc)
+            usuario.updated_at = datetime.now(timezone.utc)
+            uow.usuarios.add(usuario)
+            uow.flush()
+            result = UsuarioRead.model_validate(usuario)
+        return result
+
+    def reactivar(self, usuario_id: int) -> UsuarioRead:
+        """Reactiva un usuario previamente desactivado (revierte el soft-delete)."""
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = uow.usuarios.get_by_id(usuario_id)
+            if not usuario:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Usuario con id={usuario_id} no encontrado",
+                )
+            usuario.deleted_at = None
             usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
             uow.flush()
@@ -197,7 +213,14 @@ class UsuarioService:
             result = UsuarioRead.model_validate(usuario)
             
             roles_usuario = [rol.codigo for rol in usuario.roles]
-            
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
+
             access_token = create_access_token(
                 data={
                     "sub": usuario.email, 
@@ -238,6 +261,13 @@ class UsuarioService:
                         detail="El usuario está desactivado",
                     )
             roles_usuario = [rol.codigo for rol in usuario.roles]
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
             access_token = create_access_token(
                 data={"sub": usuario.email, 'id': usuario.id, "roles": roles_usuario}
             )

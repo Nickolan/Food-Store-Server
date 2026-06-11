@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlmodel import JSON, Field, Relationship, SQLModel
@@ -39,7 +39,7 @@ class ProductoCategoriaLink(SQLModel, table=True):
 
     es_principal: bool = Field(default=False, nullable=False)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Producto
@@ -61,8 +61,8 @@ class Producto(SQLModel, table=True):
     activo: bool = Field(default=True, nullable=False)
     disponible: bool = Field(default=True)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     deleted_at: Optional[datetime] = Field(default=None, nullable=True)
 
     unidad_venta_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")

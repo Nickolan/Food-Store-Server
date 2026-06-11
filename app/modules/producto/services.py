@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 from decimal import Decimal
 from sqlalchemy.orm import selectinload
@@ -235,7 +235,7 @@ class ProductoService:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)
             producto.activo = False
-            producto.deleted_at = datetime.utcnow().isoformat()
+            producto.deleted_at = datetime.now(timezone.utc).isoformat()
             uow.productos.add(producto)
         return producto
 
@@ -351,7 +351,7 @@ class ProductoService:
             producto = self._get_or_404(uow, producto_id)
             producto.activo = True
             producto.deleted_at = None  # Limpiar la fecha de eliminación
-            producto.updated_at = datetime.utcnow()
+            producto.updated_at = datetime.now(timezone.utc)
             uow.productos.add(producto)
         return producto
     

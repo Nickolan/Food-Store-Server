@@ -5,17 +5,17 @@ from datetime import datetime
 
 # ─── Base ──────────────────────────────────────────────────────────────────
 class CategoriaBase(SQLModel):
-    nombre: str = Field(..., index=True, examples=["Bebidas"])
+    nombre: str = Field(..., examples=["Bebidas"])
     descripcion: str = Field(..., min_length=3, examples=["Categoría para bebidas frías y calientes."])
     imagen_url: Optional[str] = Field(default=None, nullable=True, examples=["https://example.com/categoria/muebles.jpg"])
-    activo: bool = Field(default=True, nullable=False)
+    activo: bool = Field(default=True)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 class CategoriaCreate(CategoriaBase):
-    parent_id: Optional[int] = Field(default=None, nullable=True, examples=[1])
+    parent_id: Optional[int] = Field(default=None, examples=[1])
 
 class CategoriaUpdate(SQLModel):
-    nombre: Optional[str] = Field(None, index=True, examples=["Bebidas"])
+    nombre: Optional[str] = Field(None, examples=["Bebidas"])
     descripcion: Optional[str] = Field(None, min_length=3)
     imagen_url: Optional[str] = Field(default=None, nullable=True, examples=["https://example.com/categoria/muebles.jpg"])
     activo: Optional[bool] = None

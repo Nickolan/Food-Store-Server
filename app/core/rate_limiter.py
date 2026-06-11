@@ -1,0 +1,84 @@
+import time
+from typing import Dict, List
+
+from fastapi import Request, Response
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+
+# Endpoints protegidos por el rate limiter
+AUTH_ENDPOINTS = {
+    "/api/v1/auth/token",
+    "/api/v1/auth/",
+}
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(
+        self,
+        app: ASGIApp,
+        max_attempts: int = 5,
+        window_seconds: int = 900,
+    ) -> None:
+        super().__init__(app)
+        self.max_attempts = max_attempts
+        self.window_seconds = window_seconds
+        # IP → lista de timestamps de intentos fallidos
+        self.attempts: Dict[str, List[float]] = {}
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        path = request.url.path
+        method = request.method.upper()
+
+        if method == "POST" and path in AUTH_ENDPOINTS:
+            ip = self._get_client_ip(request)
+            self._clean_expired(ip)
+
+            # Procesar el request siempre
+            response = await call_next(request)
+
+            if response.status_code == 401:
+                # Sumar el intento fallido
+                if ip not in self.attempts:
+                    self.attempts[ip] = []
+                self.attempts[ip].append(time.time())
+
+                current_attempts = len(self.attempts[ip])
+                print(f"DEBUG: ip={ip}, attempts={current_attempts}, max={self.max_attempts}")
+
+                # Si ahora excede el límite → devolver 429
+                if current_attempts > self.max_attempts:
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": (
+                                f"Demasiados intentos fallidos. "
+                                f"Intentá nuevamente en {self.window_seconds // 60} minutos."
+                            )
+                        },
+                        headers={"Retry-After": str(self.window_seconds)},
+                    )
+
+            elif response.status_code in (200, 201):
+                # Login exitoso → resetear contador
+                self.attempts.pop(ip, None)
+
+            return response
+
+        return await call_next(request)
+
+    def _clean_expired(self, ip: str) -> None:
+        """Elimina timestamps fuera de la ventana de tiempo."""
+        if ip not in self.attempts:
+            return
+        cutoff = time.time() - self.window_seconds
+        self.attempts[ip] = [t for t in self.attempts[ip] if t > cutoff]
+        if not self.attempts[ip]:
+            del self.attempts[ip]
+
+    def _get_client_ip(self, request: Request) -> str:
+        """Extrae la IP del cliente."""
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"

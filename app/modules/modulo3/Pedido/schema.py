@@ -21,6 +21,7 @@ class DetalleRead(SQLModel):
     precio_snapshot: Decimal
     subtotal_snap: Decimal
     personalizacion: Optional[list[int]] = None
+    created_at: Optional[datetime] = None
 
 class PedidoRead(PedidoBase):
     id: int
