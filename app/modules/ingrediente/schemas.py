@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+from app.modules.unidad_medida.schemas import UnidadMedidaRead
 from pydantic import Field
 
 from sqlmodel import SQLModel
@@ -49,7 +49,7 @@ class IngredienteUpdate(SQLModel):
 class IngredienteRead(IngredienteBase):
 
     id: int
-
+    unidad_medida: Optional[UnidadMedidaRead] = None
     # created_at: datetime
 
     # updated_at: datetime
@@ -71,6 +71,7 @@ class IngredienteBasicRead(SQLModel):
     stock_cantidad: int
     es_alergeno: bool
     unidad_medida_id: Optional[int] = None
+    unidad_medida: Optional[UnidadMedidaRead] = None
     activo: bool
     
 class ProductoBasicRead(SQLModel):
