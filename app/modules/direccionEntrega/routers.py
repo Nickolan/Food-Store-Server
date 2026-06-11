@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, status, Path
 from sqlmodel import Session
 from app.core.database import get_session
-from app.core.deps import get_current_active_user
+from app.core.deps import get_current_active_user, require_roles
 from app.modules.usuario.models import Usuario
 from app.modules.direccionEntrega.schemas import (
     DireccionCreate,
@@ -31,6 +31,14 @@ def listar_mis_direcciones(
     svc: DireccionService = Depends(get_direccion_service)
 ) -> List[DireccionRead]:
     return svc.listar_por_usuario(current_user.id)
+
+@router.get("/admin/{direccion_id}", response_model=DireccionRead, status_code=status.HTTP_200_OK)
+def detalle_direccion_admin(
+    direccion_id: int = Path(..., gt=0),
+    current_user: Usuario = Depends(require_roles(["ADMIN", "PEDIDOS"])),
+    svc: DireccionService = Depends(get_direccion_service)
+) -> DireccionRead:
+    return svc.obtener_por_id_admin(direccion_id)
 
 @router.get("/{direccion_id}", response_model=DireccionRead, status_code=status.HTTP_200_OK)
 def detalle_direccion(

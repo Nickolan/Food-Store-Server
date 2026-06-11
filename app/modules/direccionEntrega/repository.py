@@ -64,3 +64,11 @@ class DireccionEntregaRepository(BaseRepository[DireccionEntrega]):
                 )
             ).all()
         )
+    
+    def get_by_id_admin(self, direccion_id: int) -> Optional[DireccionEntrega]:
+        return self.session.exec(
+            select(DireccionEntrega).where(
+                DireccionEntrega.id == direccion_id,
+                DireccionEntrega.deleted_at.is_(None)
+            )
+        ).first()

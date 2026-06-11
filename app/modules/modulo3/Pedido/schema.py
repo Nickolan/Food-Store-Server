@@ -29,6 +29,7 @@ class PedidoRead(PedidoBase):
     estado_codigo: str 
     subtotal: Decimal = Field(default=0, max_digits=10, decimal_places=2)
     total: Decimal = Field(default=0, max_digits=10, decimal_places=2)
+    created_at: Optional[datetime] = None
     detalle: List[DetalleRead] = []
 
 class PedidoUpdate(SQLModel):

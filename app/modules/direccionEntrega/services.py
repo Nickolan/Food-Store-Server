@@ -125,3 +125,14 @@ class DireccionService:
 
             result = DireccionRead.model_validate(direccion)
         return result
+    
+    def obtener_por_id_admin(self, direccion_id: int) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            direccion = uow.direcciones.get_by_id_admin(direccion_id)
+            if not direccion:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Dirección con ID {direccion_id} no encontrada."
+                )
+            result = DireccionRead.model_validate(direccion)
+        return result
