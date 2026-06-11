@@ -20,7 +20,6 @@ class ProductoIngredienteCreate(SQLModel):
     ingrediente_id: int
     es_removible: bool = False
     cantidad: Decimal = Field(..., gt=0)
-    unidad_medida_id: int = Field(..., gt=0)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 class ProductoCreate(ProductoBase):
@@ -61,7 +60,6 @@ class IngredienteWithProductoInfo(SQLModel):
     ingrediente: IngredienteBasicRead
     es_removible: Optional[bool] = None
     cantidad: Optional[Decimal] = None
-    unidad_medida_id: Optional[int] = None
 
 class ProductoReadFull(ProductoRead):
     """Producto con sus categorías e ingredientes anidados."""
@@ -90,7 +88,6 @@ class ProductoIngredienteAssign(SQLModel):
     ingrediente_id: int
     es_removible: bool = False
     cantidad: Decimal = Field(..., gt=0)
-    unidad_medida_id: int = Field(..., gt=0)
 
 class ProductoIngredienteRemove(SQLModel):
     """Schema para remover ingrediente de producto"""

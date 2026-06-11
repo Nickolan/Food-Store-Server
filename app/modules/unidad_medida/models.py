@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import BIGINT, TIMESTAMP
 
 if TYPE_CHECKING:
     from app.modules.producto.models import Producto
+    from app.modules.ingrediente.models import Ingrediente
     from app.modules.ingrediente.models import IngredienteProductoLink
 
 class UnidadMedida(SQLModel, table=True):
@@ -24,4 +25,4 @@ class UnidadMedida(SQLModel, table=True):
     )
 
     productos: List["Producto"] = Relationship(back_populates="unidad_medida")
-    producto_ingredientes: List["IngredienteProductoLink"] = Relationship(back_populates="unidad_medida")
+    ingredientes: List["Ingrediente"] = Relationship(back_populates="unidad_medida")

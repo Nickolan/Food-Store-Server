@@ -159,7 +159,6 @@ class ProductoService:
                         ingrediente_id=ing_data.ingrediente_id, 
                         es_removible=ing_data.es_removible,
                         cantidad=ing_data.cantidad,
-                        unidad_medida_id=ing_data.unidad_medida_id
                     )
             if data.categorias_ids:
                 print("Asignando categorías al producto: ", data.categorias_ids)
@@ -209,7 +208,6 @@ class ProductoService:
                     ingrediente=ingrediente.model_dump(),
                     es_removible=link.es_removible == True if link else False,
                     cantidad=link.cantidad if link else None,
-                    unidad_medida_id=link.unidad_medida_id if link else None
                 ))
 
             print("Producto: ", producto)
@@ -253,13 +251,13 @@ class ProductoService:
     
     # ─── Nuevos métodos para manejo de ingredientes ─────────────────────────
     
-    def agregar_ingrediente_a_producto(self, producto_id: int, ingrediente_id: int, es_removible: bool, cantidad: Decimal, unidad_medida_id: int) -> ProductoRead:
+    def agregar_ingrediente_a_producto(self, producto_id: int, ingrediente_id: int, es_removible: bool, cantidad: Decimal) -> ProductoRead:
         with ProductoUnitOfWork(self._session) as uow:
             self._assert_ingrediente_link_not_exists(uow, producto_id, ingrediente_id)
             self._get_ingrediente_or_404(uow, ingrediente_id)
             producto = self._get_full_or_404(uow, producto_id)
             
-            uow.productos.link_ingrediente(producto_id, ingrediente_id, es_removible, cantidad, unidad_medida_id)
+            uow.productos.link_ingrediente(producto_id, ingrediente_id, es_removible, cantidad)
             result = ProductoRead.model_validate(producto)
         return result
     
@@ -334,7 +332,7 @@ class ProductoService:
                 for link in uow.productos.get_all_ingrediente_links(producto_id):
                     uow.productos.unlink_ingrediente(producto_id, link.ingrediente_id)
                 for ing in data.ingredientes:
-                    uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible, ing.cantidad, ing.unidad_medida_id)
+                    uow.productos.link_ingrediente(producto_id, ing.ingrediente_id, ing.es_removible, ing.cantidad)
 
             if data.categorias_ids is not None:
                 for categoria in producto.categorias:

@@ -19,7 +19,7 @@ class IngredienteBase(SQLModel):
     stock_cantidad: int = Field(default=0, ge=0, examples=[100])
 
     es_alergeno: bool = Field(default=False)
-
+    unidad_medida_id: Optional[int] = Field(default=None)
     activo: bool = Field(default=True, nullable=False)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ class IngredienteUpdate(SQLModel):
     stock_cantidad: Optional[int] = Field(None, ge=0)
 
     es_alergeno: Optional[bool] = None
-
+    unidad_medida_id: Optional[int] = Field(default=None)
     activo: bool = Field(default=True, nullable=False)
 
 
@@ -70,6 +70,7 @@ class IngredienteBasicRead(SQLModel):
     nombre: str
     stock_cantidad: int
     es_alergeno: bool
+    unidad_medida_id: Optional[int] = None
     activo: bool
     
 class ProductoBasicRead(SQLModel):

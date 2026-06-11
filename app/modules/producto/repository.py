@@ -105,13 +105,12 @@ class ProductoRepository(BaseRepository[Producto]):
             )
         ).all())
 
-    def link_ingrediente(self, producto_id: int, ingrediente_id: int, es_removible: bool, cantidad: Decimal, unidad_medida_id: int) -> IngredienteProductoLink:
+    def link_ingrediente(self, producto_id: int, ingrediente_id: int, es_removible: bool, cantidad: Decimal) -> IngredienteProductoLink:
         link = IngredienteProductoLink(
             producto_id=producto_id,
             ingrediente_id=ingrediente_id,
             es_removible=es_removible,
             cantidad=cantidad,
-            unidad_medida_id=unidad_medida_id
         )
         self.session.add(link)
         self.session.flush()
