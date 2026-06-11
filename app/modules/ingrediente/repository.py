@@ -22,6 +22,7 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         return list(
             self.session.exec(
                 select(Ingrediente)
+                .options(selectinload(Ingrediente.unidad_medida))
                 .offset(offset)
                 .limit(limit)
             ).all()
@@ -31,7 +32,10 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
         return self.session.exec(
             select(Ingrediente)
             .where(Ingrediente.id == ingrediente_id)
-            .options(selectinload(Ingrediente.productos))
+            .options(
+                selectinload(Ingrediente.productos),
+                selectinload(Ingrediente.unidad_medida)
+            )
         ).first()
     
     def count(self) -> int:
