@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -22,8 +22,8 @@ class Categoria(SQLModel, table=True):
     imagen_url: Optional[str] = Field(default=None, nullable=True)
     activo: bool = Field(default=True, nullable=False)
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field( default_factory=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: datetime = Field( default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     deleted_at: Optional[datetime] = Field(default=None, nullable=True)
 
     # Autoreferencia

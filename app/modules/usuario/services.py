@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import bcrypt
@@ -115,7 +115,7 @@ class UsuarioService:
             cambios = data.model_dump(exclude_unset=True)
             for key, value in cambios.items():
                 setattr(usuario, key, value)
-            usuario.updated_at = datetime.utcnow()
+            usuario.updated_at = datetime.now(timezone.utc)
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
@@ -124,8 +124,8 @@ class UsuarioService:
     def desactivar(self, usuario_id: int) -> UsuarioRead:
         with UsuarioUnitOfWork(self._session) as uow:
             usuario = self._get_or_404(uow, usuario_id)
-            usuario.deleted_at = datetime.utcnow()
-            usuario.updated_at = datetime.utcnow()
+            usuario.deleted_at = datetime.now(timezone.utc)
+            usuario.updated_at = datetime.now(timezone.utc)
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
@@ -213,7 +213,14 @@ class UsuarioService:
             result = UsuarioRead.model_validate(usuario)
             
             roles_usuario = [rol.codigo for rol in usuario.roles]
-            
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
+
             access_token = create_access_token(
                 data={
                     "sub": usuario.email, 
@@ -254,6 +261,13 @@ class UsuarioService:
                         detail="El usuario está desactivado",
                     )
             roles_usuario = [rol.codigo for rol in usuario.roles]
+            if not roles_usuario:
+                rol_cliente = uow.roles.get_by_codigo("CLIENT")
+                if not rol_cliente:
+                    rol_cliente = Rol(codigo="CLIENT", nombre="Cliente", descripcion="Cliente regular del sistema")
+                    uow.roles.add(rol_cliente)
+                uow.usuario_roles.add(UsuarioRol(usuario_id=usuario.id, rol_codigo=rol_cliente.codigo))
+                roles_usuario = ["CLIENT"]
             access_token = create_access_token(
                 data={"sub": usuario.email, 'id': usuario.id, "roles": roles_usuario}
             )

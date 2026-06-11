@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from sqlmodel import select
 from app.modules.direccionEntrega.models import DireccionEntrega
@@ -86,7 +86,7 @@ class DireccionService:
             for key, value in update_data.items():
                 setattr(direccion, key, value)
             
-            direccion.updated_at = datetime.utcnow()
+            direccion.updated_at = datetime.now(timezone.utc)
             uow.direcciones.add(direccion)
             
             self._ensure_one_principal(uow, usuario_id, direccion)
@@ -107,7 +107,7 @@ class DireccionService:
             
             was_principal = direccion.es_principal
             
-            direccion.deleted_at = datetime.utcnow()
+            direccion.deleted_at = datetime.now(timezone.utc)
             uow.direcciones.add(direccion)
             
             if was_principal:
@@ -120,8 +120,19 @@ class DireccionService:
             if not direccion.es_principal:
                 uow.direcciones.reset_principal_flag(usuario_id)
                 direccion.es_principal = True
-                direccion.updated_at = datetime.utcnow()
+                direccion.updated_at = datetime.now(timezone.utc)
                 uow.direcciones.add(direccion)
 
+            result = DireccionRead.model_validate(direccion)
+        return result
+    
+    def obtener_por_id_admin(self, direccion_id: int) -> DireccionRead:
+        with DireccionUoW(self._session) as uow:
+            direccion = uow.direcciones.get_by_id_admin(direccion_id)
+            if not direccion:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Dirección con ID {direccion_id} no encontrada."
+                )
             result = DireccionRead.model_validate(direccion)
         return result

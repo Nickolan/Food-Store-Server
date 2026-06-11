@@ -8,14 +8,14 @@ from decimal import Decimal
 
 class DireccionBase(SQLModel):
     alias: Optional[str] = Field(max_length=50, default=None, examples=["Casa", "Oficina"])
-    linea1: str = Field(max_length=255, nullable=False, examples=["Av. Siempre Viva 123"])
+    linea1: str = Field(max_length=255, examples=["Av. Siempre Viva 123"])
     linea2: Optional[str] = Field(max_length=255, default=None, examples=["Depto 4B"])
-    ciudad: str = Field(max_length=100, nullable=False, examples=["Springfield"])
+    ciudad: str = Field(max_length=100, examples=["Springfield"])
     provincia: Optional[str] = Field(max_length=10, default=None, examples=["BSAS"])
     codigo_postal: Optional[str] = Field(max_length=10, default=None, examples=["1234"])
     latitud: Optional[Decimal] = Field(max_digits=9, decimal_places=6, default=None, examples=["-34.603722"])
     longitud: Optional[Decimal] = Field(max_digits=9, decimal_places=6, default=None, examples=["-58.381592"])
-    es_principal: bool = Field(default=False, nullable=False)
+    es_principal: bool = Field(default=False)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 
