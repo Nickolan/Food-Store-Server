@@ -6,6 +6,8 @@ from sqlmodel import SQLModel
 
 from datetime import datetime
 
+from app.modules.unidad_medida.schemas import UnidadMedidaRead
+
 
 
 # ─── Base ──────────────────────────────────────────────────────────────────
@@ -18,9 +20,13 @@ class IngredienteBase(SQLModel):
 
     stock_cantidad: int = Field(default=0, ge=0, examples=[100])
 
+    precio: float = Field(default=0.0, ge=0, examples=[25.50])
+
     es_alergeno: bool = Field(default=False)
     unidad_medida_id: Optional[int] = Field(default=None)
     activo: bool = Field(default=True, nullable=False)
+
+    unidad_medida_id: Optional[int] = Field(default=None)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
 
@@ -38,6 +44,8 @@ class IngredienteUpdate(SQLModel):
 
     stock_cantidad: Optional[int] = Field(None, ge=0)
 
+    precio: Optional[float] = Field(None, ge=0)
+
     es_alergeno: Optional[bool] = None
     unidad_medida_id: Optional[int] = Field(default=None)
     activo: bool = Field(default=True, nullable=False)
@@ -49,7 +57,9 @@ class IngredienteUpdate(SQLModel):
 class IngredienteRead(IngredienteBase):
 
     id: int
+
     unidad_medida: Optional[UnidadMedidaRead] = None
+
     # created_at: datetime
 
     # updated_at: datetime

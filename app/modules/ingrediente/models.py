@@ -44,11 +44,13 @@ class Ingrediente(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(index=True, unique=True)
     descripcion: str = Field(default="")
-    stock_cantidad: Decimal = Field(default=0, ge=0, nullable=False)
-    unidad_medida_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
-    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="ingredientes")
+    stock_cantidad: int = Field(default=0, ge=0, nullable=False)
+    precio: float = Field(default=0.0, ge=0, nullable=False)
     es_alergeno: bool = Field(default=False, nullable=False)
     
+    unidad_medida_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
+    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="ingredientes")
+
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
