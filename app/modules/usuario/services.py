@@ -98,8 +98,8 @@ class UsuarioService:
 
     def obtener_todos(self, offset: int = 0, limit: int = 20) -> UsuarioPaginadoResponse:
         with UsuarioUnitOfWork(self._session) as uow:
-            usuarios = uow.usuarios.get_activos(offset=offset, limit=limit)
-            total = uow.usuarios.count_activos()
+            usuarios = uow.usuarios.get_todos(offset=offset, limit=limit)
+            total = uow.usuarios.count_todos()
             items = [UsuarioRead.model_validate(u) for u in usuarios]
         return UsuarioPaginadoResponse(total=total, items=items)
 
@@ -126,6 +126,22 @@ class UsuarioService:
             usuario = self._get_or_404(uow, usuario_id)
             usuario.deleted_at = datetime.now(timezone.utc)
             usuario.updated_at = datetime.now(timezone.utc)
+            uow.usuarios.add(usuario)
+            uow.flush()
+            result = UsuarioRead.model_validate(usuario)
+        return result
+
+    def reactivar(self, usuario_id: int) -> UsuarioRead:
+        """Reactiva un usuario previamente desactivado (revierte el soft-delete)."""
+        with UsuarioUnitOfWork(self._session) as uow:
+            usuario = uow.usuarios.get_by_id(usuario_id)
+            if not usuario:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Usuario con id={usuario_id} no encontrado",
+                )
+            usuario.deleted_at = None
+            usuario.updated_at = datetime.utcnow()
             uow.usuarios.add(usuario)
             uow.flush()
             result = UsuarioRead.model_validate(usuario)
