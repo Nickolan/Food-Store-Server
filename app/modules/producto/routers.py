@@ -130,7 +130,6 @@ def asignar_ingrediente(
         body.ingrediente_id, 
         es_removible=body.es_removible,
         cantidad=body.cantidad,
-        unidad_medida_id=body.unidad_medida_id
     )
     return producto
 
