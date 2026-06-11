@@ -64,5 +64,13 @@ app.include_router(ingrediente_router)
 app.include_router(usuario_router)
 app.include_router(direccion_router)
 app.include_router(pedido_router)
-app.include_router(pago_router)
 app.include_router(unidad_medida_router)
+app.include_router(pago_router)
+
+@app.get("/debug/ws-rooms", tags=["debug"])
+def ws_rooms():
+    from app.core.websocket import manager
+    return {
+        "total_connections": manager.get_active_connections_count(),
+        "rooms": manager.get_rooms_info(),
+    }
