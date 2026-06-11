@@ -1,5 +1,5 @@
 from typing import List, Optional
-
+from app.modules.unidad_medida.schemas import UnidadMedidaRead
 from pydantic import Field
 
 from sqlmodel import SQLModel
@@ -23,8 +23,8 @@ class IngredienteBase(SQLModel):
     precio: float = Field(default=0.0, ge=0, examples=[25.50])
 
     es_alergeno: bool = Field(default=False)
-
-    activo: bool = Field(default=True)
+    unidad_medida_id: Optional[int] = Field(default=None)
+    activo: bool = Field(default=True, nullable=False)
 
     unidad_medida_id: Optional[int] = Field(default=None)
 
@@ -47,10 +47,8 @@ class IngredienteUpdate(SQLModel):
     precio: Optional[float] = Field(None, ge=0)
 
     es_alergeno: Optional[bool] = None
-
-    activo: Optional[bool] = None
-
-    unidad_medida_id: Optional[int] = None
+    unidad_medida_id: Optional[int] = Field(default=None)
+    activo: bool = Field(default=True, nullable=False)
 
 
 
@@ -82,6 +80,8 @@ class IngredienteBasicRead(SQLModel):
     nombre: str
     stock_cantidad: int
     es_alergeno: bool
+    unidad_medida_id: Optional[int] = None
+    unidad_medida: Optional[UnidadMedidaRead] = None
     activo: bool
     
 class ProductoBasicRead(SQLModel):

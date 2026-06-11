@@ -32,8 +32,6 @@ class IngredienteProductoLink(SQLModel, table=True):
     es_removible: bool = Field(default=False, nullable=False)
     cantidad: Decimal = Field(..., gt=0)
 
-    unidad_medida_id: int = Field(foreign_key="unidad_medida.id")
-    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="producto_ingredientes")
 
 class Ingrediente(SQLModel, table=True):
     """
@@ -51,7 +49,7 @@ class Ingrediente(SQLModel, table=True):
     es_alergeno: bool = Field(default=False, nullable=False)
     
     unidad_medida_id: Optional[int] = Field(default=None, foreign_key="unidad_medida.id")
-    unidad_medida: Optional["UnidadMedida"] = Relationship()
+    unidad_medida: Optional["UnidadMedida"] = Relationship(back_populates="ingredientes")
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)

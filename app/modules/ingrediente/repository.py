@@ -16,8 +16,9 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def get_by_nombre(self, nombre: str) -> Ingrediente | None:
         return self.session.exec(
             select(Ingrediente).where(Ingrediente.nombre == nombre)
+            .options(selectinload(Ingrediente.unidad_medida))
         ).first()
-    
+
     def get_paginado(self, offset: int = 0, limit: int = 20) -> list[Ingrediente]:
         return list(
             self.session.exec(
