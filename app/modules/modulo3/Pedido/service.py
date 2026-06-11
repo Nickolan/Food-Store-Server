@@ -1,7 +1,10 @@
+import logging
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Union
 from fastapi import HTTPException, status
+
+logger = logging.getLogger(__name__)
 from sqlmodel import select
 from app.modules.modulo3.Pedido.model import Pedido
 from app.modules.modulo3.HistorialEstadoPedido.model import HistorialEstadoPedido
@@ -10,11 +13,30 @@ from app.modules.modulo3.Pedido.model import DetallePedido
 from app.modules.modulo3.Pedido.schema import PedidoCreate, PedidoRead, PedidoUpdate
 from app.modules.modulo3.Pedido.unitOfWork import PedidoUnitOfWork
 
+EVENTOS_WS = {
+    "PENDIENTE":  "NUEVO_PEDIDO",
+    "CONFIRMADO": "PEDIDO_CONFIRMADO",
+    "EN_PREP":    "PEDIDO_EN_PREPARACION",
+    "EN_CAMINO":  "PEDIDO_EN_CAMINO",      # era PEDIDO_LISTO — corregido
+    "CANCELADO":  "PEDIDO_CANCELADO",
+    "ENTREGADO":  "PEDIDO_ENTREGADO",
+}
+
+ROLES_POR_TRANSICION = {
+    "PENDIENTE":  ["PEDIDOS", "COCINA", "ADMIN"],  # nuevo pedido: cajero + cocina + admin
+    "CONFIRMADO": ["PEDIDOS", "COCINA", "ADMIN"],  # cocina debe verlo confirmado
+    "EN_PREP":    ["PEDIDOS", "ADMIN"],             # cajero y admin se enteran que empezó
+    "EN_CAMINO":  ["PEDIDOS", "ADMIN"],             # cajero recibe aviso para entregar
+    "CANCELADO":  ["PEDIDOS", "COCINA", "ADMIN"],   # todos se enteran de la cancelación
+    "ENTREGADO":  ["PEDIDOS", "ADMIN"],
+}
+
 
 class PedidoService:
     def __init__(self,uow:PedidoUnitOfWork):
         self.uow=uow
-    def avanzar_estado(self,uow,pedido:Pedido,nuevo_codigo:str,usuario_id: Optional[int] = None, motivo: str = "Cambio de estado", es_creacion:bool=False, usuario_rol: Optional[str] = None):
+
+    async def avanzar_estado(self,uow,pedido:Pedido,nuevo_codigo:str,usuario_id: Optional[int] = None, motivo: str = "Cambio de estado", es_creacion:bool=False, usuario_rol: Optional[str] = None):
         if es_creacion:
           historial = HistorialEstadoPedido(
             pedido_id=pedido.id,
@@ -63,7 +85,9 @@ class PedidoService:
             usuario_id=usuario_id,
             motivo=motivo
         )
+        await self._emit_ws_events(pedido.id, destino, PedidoRead.model_validate(pedido))
         uow.historiales.add(historial)
+
     def validar_entidades(self,uow,data:Union[PedidoCreate,PedidoUpdate], userid: Optional[int] = None):
             # Validar usuario
             usuario_id = userid or getattr(data, "usuario_id", None) 
@@ -101,7 +125,8 @@ class PedidoService:
                         status_code=status.HTTP_400_BAD_REQUEST, 
                         detail="Si la forma de pago es EFECTIVO, no se debe proporcionar una dirección de entrega."
                     )
-    def crear(self,data:PedidoCreate, usuario_id: int)->PedidoRead:
+                 
+    async def crear(self, data: PedidoCreate, usuario_id: int) -> PedidoRead:
         with self.uow as uow:
             self.validar_entidades(uow,data, usuario_id)
             datos_pedido = data.model_dump(exclude={"items"})
@@ -151,7 +176,7 @@ class PedidoService:
                 producto = uow.productos.get_by_id(detalle.producto_id)
                 producto.stock -= detalle.cantidad
                 uow.productos.add(producto)
-            self.avanzar_estado(uow=uow,pedido=nuevo_pedido,nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
+            await self.avanzar_estado(uow=uow, pedido=nuevo_pedido, nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
             return PedidoRead.model_validate(nuevo_pedido)
     
     def obtener_pedidos_por_usuario(self, usuario_id:int, skip:int, limit:int)->List[PedidoRead]:
@@ -170,7 +195,7 @@ class PedidoService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
             return PedidoRead.model_validate(pedido)
     
-    def actualizar(self,id:int,data:PedidoUpdate, usuario_rol:Optional[str])->Optional[PedidoRead]:
+    async def actualizar(self, id: int, data: PedidoUpdate, usuario_rol: Optional[str]) -> Optional[PedidoRead]:
        with self.uow as uow:
            self.validar_entidades(uow,data)
            pedido=uow.pedidos.get_by_id(id)
@@ -186,7 +211,7 @@ class PedidoService:
                             detail="El motivo es estrictamente obligatorio si el estado es CANCELADO. Por favor, especifíquelo en el campo 'motivo'."
                         )
                     motivo_cambio = data.motivo.strip()
-                self.avanzar_estado(uow=uow,pedido=pedido,nuevo_codigo=datos_nuevos["estado_codigo"], usuario_id=pedido.usuario_id, motivo=motivo_cambio, usuario_rol=usuario_rol)
+                await self.avanzar_estado(uow=uow, pedido=pedido, nuevo_codigo=datos_nuevos["estado_codigo"], usuario_id=pedido.usuario_id, motivo=motivo_cambio, usuario_rol=usuario_rol)
                 datos_nuevos.pop("estado_codigo")
            datos_nuevos.pop("motivo", None)
            for clave, valor in datos_nuevos.items():
@@ -201,7 +226,7 @@ class PedidoService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
             historiales=uow.historiales.obtener_por_pedido(id)
             return [HistorialEstadoPedidoRead.model_validate(h) for h in historiales]
-    def cancelar_pedido(self,id:int, motivo:str, usuario_id:int, usuario_rol:str)->PedidoRead:
+    async def cancelar_pedido(self, id: int, motivo: str, usuario_id: int, usuario_rol: str) -> PedidoRead:
         with self.uow as uow:
             pedido=uow.pedidos.get_by_id(id)
             if not pedido:
@@ -214,6 +239,31 @@ class PedidoService:
                      status_code=403, 
                      detail="Permisos insuficientes: Solo ADMIN o PEDIDOS pueden cancelar un pedido en preparación."
                  )
-            self.avanzar_estado(uow=uow,pedido=pedido,nuevo_codigo="CANCELADO", usuario_id=usuario_id, motivo=motivo, usuario_rol=usuario_rol)
+            await self.avanzar_estado(uow=uow, pedido=pedido, nuevo_codigo="CANCELADO", usuario_id=usuario_id, motivo=motivo, usuario_rol=usuario_rol)
             uow.pedidos.add(pedido)
             return PedidoRead.model_validate(pedido)
+        
+    async def _emit_ws_events(
+        self, pedido_id: int, destino: str, result: PedidoRead
+    ) -> None:
+        print(f"Emitiendo evento WS para pedido {pedido_id} con destino {destino}")  # Log para depuración
+    
+        from app.core.websocket import manager
+
+        event_type = EVENTOS_WS.get(destino)
+        if not event_type:
+            return
+
+        data = result.model_dump()
+
+        await manager.broadcast_to_order(pedido_id, event_type, data)
+
+        print(f"Eventos WS emitidos para pedido {pedido_id} con destino {destino}")  # Log para depuración
+        roles_a_notificar = ROLES_POR_TRANSICION.get(destino, [])
+        if roles_a_notificar:
+            await manager.broadcast_to_roles(roles_a_notificar, event_type, data)
+
+        logger.info(
+            "WS emitido: %s | pedido=%s | roles=%s | rooms_activas=%s",
+            event_type, pedido_id, roles_a_notificar, manager.get_rooms_info(),
+        )
