@@ -38,10 +38,11 @@ class Settings(BaseSettings):
     # ─── CORS ──────────────────────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5176"
 
-    @computed_field
-    @property
-    def FRONTEND_URL(self) -> str:
-        return self.CORS_ORIGINS.split(",")[0].strip()
+    FRONTEND_URL: str = "https://parade-crevice-twiddling.ngrok-free.dev"  # Se calcula con @computed_field a partir de CORS_ORIGINS
+    # @computed_field
+    # @property
+    # def FRONTEND_URL(self) -> str:
+    #     return self.CORS_ORIGINS.split(",")[0].strip()
 
     # ─── Mercado Pago ─────────────────────────────────────────────────────────
     MP_ACCESS_TOKEN: str

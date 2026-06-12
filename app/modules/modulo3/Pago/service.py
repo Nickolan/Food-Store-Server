@@ -27,7 +27,7 @@ class PagoService:
                 )
             
             sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN)
-            external_reference = str(uuid.uuid4())
+            external_reference = pedido.id
             idempotency_key = str(uuid.uuid4())
             
             preference_data = {
@@ -44,7 +44,8 @@ class PagoService:
                     "failure": f"{settings.FRONTEND_URL}/failure?pedido={pedido.id}",
                     "pending": f"{settings.FRONTEND_URL}/pending?pedido={pedido.id}"
                 },
-                "external_reference": external_reference
+                "external_reference": external_reference,
+                "auto_return": "approved",
             }
             
             request_options = mercadopago.config.RequestOptions()

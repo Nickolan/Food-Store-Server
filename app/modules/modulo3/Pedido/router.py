@@ -94,7 +94,9 @@ async def cancelar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", d
 async def websocket_endpoint(
     websocket: WebSocket,
 ):
+    print("ACCEDIENDO A LA RUTA DE WEBSOCKET DE PEDIDOS")
     token = websocket.cookies.get("access_token")
+    print(f"Token recibido en WebSocket: {token}")
 
     if not token:
         await websocket.accept()
@@ -106,50 +108,75 @@ async def websocket_endpoint(
         await websocket.accept()
         await websocket.close(code=1008, reason="Token inválido o expirado")
         return
+    
+    print(f"Payload decodificado del token: {payload}")
 
     username = payload.get("sub")
     if not username:
         await websocket.accept()
         await websocket.close(code=1008, reason="Token inválido")
         return
+    
+    print(f"Username extraído del token: {username}")
 
     with Session(engine) as db_session:
         with UsuarioUnitOfWork(db_session) as uow:
-            user = uow.usuarios.get_by_username(username)
-            if not user or user.disabled:
+            user = uow.usuarios.get_by_email(username)
+            if user.deleted_at is not None:
                 await websocket.accept()
                 await websocket.close(code=1008, reason="Usuario inválido o inactivo")
                 return
+            
+            print(f"Usuario autenticado en WebSocket: {user.email} con roles {[rol.codigo for rol in user.roles]}")
             user_roles = [rol.codigo.lower() for rol in user.roles]
-            user_role = user_roles[0] if user_roles else "user"
+            
+            user_roles_upper = [r.upper() for r in user_roles]
+
+            # Determinar rol primario para la room: ADMIN > PEDIDOS > CLIENT > primero disponible
+            if "ADMIN" in user_roles_upper:
+                user_role = "admin"
+            elif "PEDIDOS" in user_roles_upper:
+                user_role = "pedidos" 
+            elif "CLIENT" in user_roles_upper:
+                user_role = "client"
+            else:
+                user_role = user_roles[0] if user_roles else "client"
+
             user_id: int = user.id
 
     from app.core.websocket import manager
     await manager.connect(websocket, role=user_role, user_id=user_id)
 
-    # Si el usuario tiene múltiples roles y uno es ADMIN, lo unimos también a role:admin
-    # (connect() ya lo une a su rol primario; esto cubre el caso multi-rol)
-    user_roles_upper = [r.upper() for r in user_roles]
-    if "ADMIN" in user_roles_upper and "role:admin" not in manager.socket_rooms.get(websocket, set()):
-        manager._join_room(websocket, "role:admin")
+    # Si el usuario tiene múltiples roles, lo unimos a todas sus rooms de rol
+    # (connect() ya lo une al rol primario; esto cubre el caso multi-rol)
+    for role_upper in user_roles_upper:
+        role_lower = role_upper.lower()
+        room_name = f"role:{role_lower}"
+        if room_name not in manager.socket_rooms.get(websocket, set()):
+            manager._join_room(websocket, room_name)
 
+    print(f"WebSocket conectado y listo para recibir mensajes: {username} con roles {user_roles_upper}")
     try:
         while True:
+            print("NO SE QUE ES ESTO PERO SE REPITE MUCHO, ES EL BUCLE DE ESCUCHA DEL WEBSOCKET")
             raw = await websocket.receive_text()
+            print(raw)
 
             try:
                 msg = json.loads(raw)
+                print(f"Mensaje JSON parseado correctamente: {msg}")
             except json.JSONDecodeError:
                 continue
 
             action = msg.get("action")
+            print(f"Mensaje recibido en WebSocket: {msg} del usuario {username} con roles {user_roles_upper}")
 
             if action == "subscribe-order":
                 order_id = msg.get("order_id")
                 if not order_id or not isinstance(order_id, int):
                     continue
 
-                if rol_upper not in ("ADMIN", "PEDIDOS"):
+                if not any(r in user_roles_upper for r in ("ADMIN", "PEDIDOS")):
                     with Session(engine) as db_session:
                         with UsuarioUnitOfWork(db_session) as uow:
                             from app.modules.modulo3.Pedido.unitOfWork import PedidoUnitOfWork
@@ -176,6 +203,8 @@ async def websocket_endpoint(
                     manager.leave_order_room(websocket, order_id)
 
     except WebSocketDisconnect:
+        print(f"WebSocket desconectado: {username}")
         manager.disconnect(websocket)
     except Exception:
+        print(f"Error en WebSocket: {username}")
         manager.disconnect(websocket)

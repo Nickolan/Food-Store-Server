@@ -8,7 +8,7 @@ load_dotenv()
 
 DATABASE_URL: str = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:tutuca05@localhost:5432/db_parcial_python"
+    "postgresql://postgres:nikolan@localhost:5432/db_parcial_python"
 )
 
 engine = create_engine(DATABASE_URL, echo=True)

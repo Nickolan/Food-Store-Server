@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from sqlmodel import SQLModel
 from app.core.database import engine
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,3 +75,11 @@ def ws_rooms():
         "total_connections": manager.get_active_connections_count(),
         "rooms": manager.get_rooms_info(),
     }
+
+
+@app.get("/checkout/success")
+async def handle_success():
+  return RedirectResponse(url="http://localhost:5173/success")
+@app.get("/checkout/failure")
+async def handle_failure():
+  return RedirectResponse(url="http://localhost:5173/failure")

@@ -24,12 +24,12 @@ EVENTOS_WS = {
 }
 
 ROLES_POR_TRANSICION = {
-    "PENDIENTE":  ["PEDIDOS", "COCINA", "ADMIN"],  # nuevo pedido: cajero + cocina + admin
-    "CONFIRMADO": ["PEDIDOS", "COCINA", "ADMIN"],  # cocina debe verlo confirmado
-    "EN_PREP":    ["PEDIDOS", "ADMIN"],             # cajero y admin se enteran que empezó
-    "EN_CAMINO":  ["PEDIDOS", "ADMIN"],             # cajero recibe aviso para entregar
-    "CANCELADO":  ["PEDIDOS", "COCINA", "ADMIN"],   # todos se enteran de la cancelación
-    "ENTREGADO":  ["PEDIDOS", "ADMIN"],
+    "PENDIENTE":  ["PEDIDOS", "ADMIN"],  # nuevo pedido: cajero + cocina + admin
+    "CONFIRMADO": ["PEDIDOS", "ADMIN", "CLIENT"],  # cocina debe verlo confirmado
+    "EN_PREP":    ["PEDIDOS", "ADMIN", "CLIENT"],             # cajero y admin se enteran que empezó
+    "EN_CAMINO":  ["PEDIDOS", "ADMIN", "CLIENT"],             # cajero recibe aviso para entregar
+    "CANCELADO":  ["PEDIDOS", "ADMIN", "CLIENT"],   # todos se enteran de la cancelación
+    "ENTREGADO":  ["PEDIDOS", "ADMIN", "CLIENT"],
 }
 
 
@@ -86,7 +86,7 @@ class PedidoService:
             usuario_id=usuario_id,
             motivo=motivo
         )
-        await self._emit_ws_events(pedido.id, destino, PedidoRead.model_validate(pedido))
+        # await self._emit_ws_events(pedido.id, destino, PedidoRead.model_validate(pedido))
         uow.historiales.add(historial)
 
     def validar_entidades(self,uow,data:Union[PedidoCreate,PedidoUpdate], userid: Optional[int] = None):
@@ -205,12 +205,13 @@ class PedidoService:
             return PedidoRead.model_validate(pedido)
     
     async def actualizar(self, id: int, data: PedidoUpdate, usuario_rol: Optional[str]) -> Optional[PedidoRead]:
-       with self.uow as uow:
+        with self.uow as uow:
            self.validar_entidades(uow,data)
            pedido=uow.pedidos.get_by_id(id)
            if not pedido:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"El pedido con el id {id} no fue encontrado.")
            datos_nuevos=data.model_dump(exclude_unset=True)
+           estado_proximo = datos_nuevos.get("estado_codigo")
            if "estado_codigo" in datos_nuevos:
                 motivo_cambio = data.motivo.strip() if data.motivo else "Cambio de estado mediante la actualización del pedido"
                 if datos_nuevos["estado_codigo"].upper() =="CANCELADO":
@@ -227,7 +228,8 @@ class PedidoService:
                 setattr(pedido, clave, valor)
            pedido.updated_at = datetime.now()
            uow.pedidos.add(pedido)
-           return PedidoRead.model_validate(pedido)
+        await self._emit_ws_events(pedido_id=pedido.id, destino=estado_proximo, result=PedidoRead.model_validate(pedido))
+        return PedidoRead.model_validate(pedido)
     def obtener_historial(self,id:int)->List[HistorialEstadoPedidoRead]:
         with self.uow as uow:
             pedido=uow.pedidos.get_by_id(id)
@@ -250,12 +252,16 @@ class PedidoService:
                  )
             await self.avanzar_estado(uow=uow, pedido=pedido, nuevo_codigo="CANCELADO", usuario_id=usuario_id, motivo=motivo, usuario_rol=usuario_rol)
             uow.pedidos.add(pedido)
-            return PedidoRead.model_validate(pedido)
-        
+            result = PedidoRead.model_validate(pedido)
+
+        # Emitir FUERA del with → post-commit, sesión ya cerrada
+        await self._emit_ws_events(pedido_id=pedido.id, destino="CANCELADO", result=result)
+
+        return result
     async def _emit_ws_events(
         self, pedido_id: int, destino: str, result: PedidoRead
     ) -> None:
-        print(f"Emitiendo evento WS para pedido {pedido_id} con destino {destino}")  # Log para depuración
+        print("EMITIENDO EVENTOS WS PARA PEDIDO ID %s, DESTINO %s", pedido_id, destino)  # Log para depuración
     
         from app.core.websocket import manager
 
@@ -263,12 +269,13 @@ class PedidoService:
         if not event_type:
             return
 
-        data = result.model_dump()
+        data = result.model_dump(mode='json')
 
         await manager.broadcast_to_order(pedido_id, event_type, data)
 
         print(f"Eventos WS emitidos para pedido {pedido_id} con destino {destino}")  # Log para depuración
         roles_a_notificar = ROLES_POR_TRANSICION.get(destino, [])
+        print(f"Roles a notificar para el evento {event_type}: {roles_a_notificar}")  # Log para depuración
         if roles_a_notificar:
             await manager.broadcast_to_roles(roles_a_notificar, event_type, data)
 
