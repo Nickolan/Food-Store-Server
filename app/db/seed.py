@@ -167,6 +167,41 @@ def _seed_admin(session: Session) -> None:
     else:
         print(" [✓] El administrador ya tiene asignado el rol 'ADMIN'.")
 
+def _seed_user_pedidos(session: Session) -> None:
+    email_admin = "pedidos@pedidos.com"
+    admin_user = session.exec(
+        select(Usuario).where(Usuario.email == email_admin)
+    ).first()
+
+    if not admin_user:
+        hashed = bcrypt.hashpw(b"pedidos", bcrypt.gensalt()).decode()
+        admin_user = Usuario(
+            nombre="Pedidos",
+            apellido="Principal",
+            email=email_admin,
+            password_hash=hashed,
+        )
+        session.add(admin_user)
+        session.commit()
+        session.refresh(admin_user)
+        print(f" [+] Usuario pedidos creado: {email_admin}")
+    else:
+        print(f" [✓] Usuario pedidos ya existe: {email_admin}")
+
+    asignacion = session.exec(
+        select(UsuarioRol).where(
+            UsuarioRol.usuario_id == admin_user.id,
+            UsuarioRol.rol_codigo == "PEDIDOS",
+        )
+    ).first()
+
+    if not asignacion:
+        session.add(UsuarioRol(usuario_id=admin_user.id, rol_codigo="PEDIDOS"))
+        session.commit()
+        print(" [+] Rol 'PEDIDOS' asignado al usuario pedidos.")
+    else:
+        print(" [✓] El usuario pedidos ya tiene asignado el rol 'PEDIDOS'.")
+
 
 
 def seed_db() -> None:
@@ -180,7 +215,7 @@ def seed_db() -> None:
         _seed_formas_pago(session)
         _seed_unidades_medida(session)
         _seed_admin(session)
-
+        _seed_user_pedidos(session)
     print("Seed finalizado con éxito.")
 
 
