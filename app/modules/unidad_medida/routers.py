@@ -8,7 +8,7 @@ from app.modules.unidad_medida.schemas import (
 )
 from app.modules.unidad_medida.services import UnidadMedidaService
 
-router = APIRouter(prefix="/unidades-medida", tags=["Unidad Medida"])
+router = APIRouter(prefix="/api/v6/unidades-medida", tags=["Unidad Medida"])
 
 def get_service(session: Session = Depends(get_session)) -> UnidadMedidaService:
     return UnidadMedidaService(session)

@@ -6,7 +6,7 @@ from app.core.deps import require_roles
 from app.modules.ingrediente.schemas import IngredienteCreate, IngredienteProductoAssign, IngredienteRead, IngredienteReadFull, IngredienteUpdate, IngredientePaginadoResponse
 from app.modules.ingrediente.services import IngredienteService
 
-router = APIRouter(prefix="/ingredientes", tags=["Ingredientes"])
+router = APIRouter(prefix="/api/v6/ingredientes", tags=["Ingredientes"])
 
 def get_ingrediente_service(session: Session = Depends(get_session)) -> IngredienteService:
     return IngredienteService(session)
