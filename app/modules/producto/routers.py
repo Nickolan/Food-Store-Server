@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, UploadFile, File
 from typing import List, Optional
 from sqlmodel import Session
+from app.core.cloudinary import subir_imagen
 from app.core.database import get_session
 from app.core.deps import require_roles
 from app.modules.producto.schemas import (
@@ -191,3 +192,8 @@ def obtener_producto_por_categoria(
     print(f"Obteniendo productos por categoría con ID: {id}")
     producto = svc.obtener_producto_por_categoria(categoria_id=id)
     return producto
+@router.post("/upload-imagen", status_code=status.HTTP_200_OK)
+async def subir_imagen_producto(file: UploadFile=File(...)):
+    contenido=await file.read()
+    url=subir_imagen(contenido)
+    return {"url": url}
