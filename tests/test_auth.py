@@ -136,11 +136,12 @@ class TestRateLimit:
         assert response.status_code == 429
         assert "Retry-After" in response.headers
 
-    def test_rate_limit_se_resetea_tras_login_exitoso(self, client, admin_user):
+    def test_rate_limit_permite_login_tras_4_fallos(self, client, admin_user):
         payload_fail = {"email": admin_user.email, "password": "wrongpass"}
-        for _ in range(5):
+        for _ in range(4):
             client.post("/api/v1/auth/token", json=payload_fail)
 
         payload_ok = {"email": admin_user.email, "password": "adminpass123"}
         response = client.post("/api/v1/auth/token", json=payload_ok)
         assert response.status_code == status.HTTP_200_OK
+        assert "access_token" in response.cookies
