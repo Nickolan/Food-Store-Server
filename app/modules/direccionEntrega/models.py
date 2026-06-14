@@ -31,5 +31,4 @@ class DireccionEntrega(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     deleted_at: Optional[datetime] = Field(default=None, nullable=True)
     
-    # Relación de composición 0..* --> 1 Usuario
     usuario: Optional["Usuario"] = Relationship(back_populates="direcciones")
