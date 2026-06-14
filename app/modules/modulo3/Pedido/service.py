@@ -76,6 +76,12 @@ class PedidoService:
                 status_code=403, 
                 detail="Permisos insuficientes: Solo ADMIN o PEDIDOS pueden cancelar un pedido en preparación."
             )
+        if destino == "CANCELADO":
+           if not motivo or not motivo.strip():
+               raise HTTPException(
+                   status_code=status.HTTP_400_BAD_REQUEST,
+                   detail="El motivo es obligatorio para cancelar un pedido."
+               )
         estado_anterior = pedido.estado_codigo
         pedido.estado_codigo = nuevo_codigo
         pedido.updated_at = datetime.now()
