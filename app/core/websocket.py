@@ -22,7 +22,7 @@ class ConnectionManager:
         await websocket.accept()
 
         # Normalizar rol a minúsculas para consistencia en nombres de room
-        # "COCINA" → "role:cocina", "Admin" → "role:admin"
+        # "PEDIDOS" → "role:pedidos", "Admin" → "role:admin"
         role_key = f"role:{role.lower()}"
 
         # Unir el socket a su room de rol
@@ -83,7 +83,7 @@ class ConnectionManager:
 
     async def broadcast_to_order(self, order_id: int, event_type: str, data: dict[str, Any]) -> None:
         room = f"order:{order_id}"
-        print(f"Emitiendo evento {event_type} a room {room} con data: {data}")  # Log para depuración
+        print(f"Emitiendo evento {event_type} a room {room} con data: {data}")
         await self._emit_to_room(room, event_type, data)
 
     async def broadcast_to_roles(
@@ -95,7 +95,7 @@ class ConnectionManager:
 
         for role in roles:
             room = f"role:{role.lower()}"
-            print(f"Emitiendo evento {event_type} a room {room} con data: {data}")  # Log para depuración
+            print(f"Emitiendo evento {event_type} a room {room} con data: {data}")
             if room not in self.rooms:
                 continue
             for connection in list(self.rooms[room]):

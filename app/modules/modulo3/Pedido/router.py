@@ -158,7 +158,7 @@ async def websocket_endpoint(
     print(f"WebSocket conectado y listo para recibir mensajes: {username} con roles {user_roles_upper}")
     try:
         while True:
-            print("NO SE QUE ES ESTO PERO SE REPITE MUCHO, ES EL BUCLE DE ESCUCHA DEL WEBSOCKET")
+            print("ES EL BUCLE DE ESCUCHA DEL WEBSOCKET")
             raw = await websocket.receive_text()
             print(raw)
 
