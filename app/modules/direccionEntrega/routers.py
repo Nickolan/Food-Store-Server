@@ -12,7 +12,7 @@ from app.modules.direccionEntrega.schemas import (
 )
 from app.modules.direccionEntrega.services import DireccionService
 
-router = APIRouter(prefix="/direcciones", tags=["Direcciones"])
+router = APIRouter(prefix="/api/v6/direcciones", tags=["Direcciones"])
 
 def get_direccion_service(session: Session = Depends(get_session)) -> DireccionService:
     return DireccionService(session)

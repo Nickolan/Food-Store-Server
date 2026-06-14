@@ -17,7 +17,7 @@ from app.modules.producto.schemas import (
 
 from app.modules.producto.services import ProductoService
 
-router = APIRouter(prefix="/productos", tags=["Productos"])
+router = APIRouter(prefix="/api/v6/productos", tags=["Productos"])
 
 def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
     return ProductoService(session)

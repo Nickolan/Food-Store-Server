@@ -12,7 +12,7 @@ from sqlmodel import Session
 from app.core.deps import get_current_user, require_roles
 from app.modules.usuario.models import Usuario
 
-router = APIRouter(prefix="/api/v1/pagos", tags=["Pago"])
+router = APIRouter(prefix="/api/v6/pagos", tags=["Pago"])
 
 def get_service(session: Session = Depends(get_session)):
     uow = PagoUnitOfWork(session)

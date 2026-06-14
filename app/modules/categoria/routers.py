@@ -8,7 +8,7 @@ from app.modules.categoria.services import CategoriaService
 from app.core.cloudinary import subir_imagen, eliminar_imagen
 from urllib.parse import unquote
 
-router = APIRouter(prefix="/categorias", tags=["Categorías"])
+router = APIRouter(prefix="/api/v6/categorias", tags=["Categorías"])
 
 def get_categoria_service(session: Session = Depends(get_session)) -> CategoriaService:
     return CategoriaService(session)

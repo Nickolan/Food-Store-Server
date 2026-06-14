@@ -3,7 +3,7 @@ from app.core.cloudinary import subir_imagen, eliminar_imagen
 from app.core.deps import require_roles
 from urllib.parse import unquote
 
-router = APIRouter(prefix="/uploads", tags=["Uploads"])
+router = APIRouter(prefix="/api/v6/uploads", tags=["Uploads"])
 
 @router.post(
     "/imagen",
