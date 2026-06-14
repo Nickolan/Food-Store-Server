@@ -28,11 +28,9 @@ def crear_pago(data: PagoCreate, service: PagoService = Depends(get_service)):
 
 @router.post("/webhook")
 async def mp_webhook(request: Request, service: PagoService = Depends(get_service)):
-    # Mercado Pago puede mandar los IDs por query params (ej: ?data.id=123) o en el body
     data_id = request.query_params.get("data.id")
     
     if not data_id:
-        # Intentar sacarlo del body si no está en la query
         try:
             data = await request.json()
             data_id = data.get("data", {}).get("id")
@@ -40,7 +38,6 @@ async def mp_webhook(request: Request, service: PagoService = Depends(get_servic
             pass
 
     if data_id:
-        # Se procesa el webhook de manera segura (el SDK va y le pregunta a MP si el pago es real)
         service.procesar_webhook(data_id)
         
     return Response(status_code=200)

@@ -31,22 +31,20 @@ class Settings(BaseSettings):
         )
 
     # ─── JWT ──────────────────────────────────────────────────────────────────
-    SECRET_KEY: str                    # Obligatorio — sin default. Mínimo 32 chars.
+    SECRET_KEY: str
     ALGORITHM:  str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # ─── CORS ──────────────────────────────────────────────────────────────────
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://127.0.0.1:5173,http://127.0.0.1:5176"
+    CORS_ORIGINS: list[str] = []
 
-    FRONTEND_URL: str = "https://parade-crevice-twiddling.ngrok-free.dev"  # Se calcula con @computed_field a partir de CORS_ORIGINS
-    # @computed_field
-    # @property
-    # def FRONTEND_URL(self) -> str:
-    #     return self.CORS_ORIGINS.split(",")[0].strip()
+
+    FRONTEND_URL: str
 
     # ─── Mercado Pago ─────────────────────────────────────────────────────────
     MP_ACCESS_TOKEN: str
     MP_WEBHOOK_SECRET: str
+    MP_NOTIFICATION_URL: str = ""
     MP_WEBHOOK_URL: str = ""
 
    # ─── Cloudinary ───────────────────────────────────────────────────────────
@@ -57,9 +55,10 @@ class Settings(BaseSettings):
     model_config = {
         "env_file":          ".env",
         "env_file_encoding": "utf-8",
-        "extra":             "ignore",   # ignora vars extra del .env (ej. DATABASE_URL literal)
+        "extra":             "ignore",
     }
+    print("CORS_ORIGINS:", CORS_ORIGINS)
 
 
-# Instancia global — importar desde aquí en toda la app
+
 settings = Settings()

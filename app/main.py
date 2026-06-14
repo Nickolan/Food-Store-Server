@@ -53,13 +53,15 @@ app = FastAPI(
 )
 app.add_middleware(RateLimitMiddleware, max_attempts=5, window_seconds=900)
 
+print("CORS_ORIGINS:", settings.CORS_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",")],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+print("FRONTEND_URL:", settings.FRONTEND_URL)
 
 app.include_router(producto_router)
 app.include_router(categoria_router)

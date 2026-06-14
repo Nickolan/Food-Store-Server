@@ -29,6 +29,9 @@ class PagoService:
             sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN)
             external_reference = pedido.id
             idempotency_key = str(uuid.uuid4())
+
+
+            print(settings.MP_WEBHOOK_URL, settings.FRONTEND_URL)
             
             preference_data = {
                 "items": [
@@ -44,6 +47,7 @@ class PagoService:
                     "failure": f"{settings.FRONTEND_URL}/failure?pedido={pedido.id}",
                     "pending": f"{settings.FRONTEND_URL}/pending?pedido={pedido.id}"
                 },
+                "notification_url": settings.MP_WEBHOOK_URL,
                 "external_reference": external_reference,
                 "auto_return": "approved",
             }
