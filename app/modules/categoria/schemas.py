@@ -7,7 +7,7 @@ from datetime import datetime
 class CategoriaBase(SQLModel):
     nombre: str = Field(..., examples=["Bebidas"])
     descripcion: str = Field(..., min_length=3, examples=["Categoría para bebidas frías y calientes."])
-    imagen_url: Optional[str] = Field(default=None, nullable=True, examples=["https://example.com/categoria/muebles.jpg"])
+    imagen_url: Optional[str] = Field(default=None, json_schema_extra={"nullable": True}, examples=["https://example.com/categoria/muebles.jpg"])
     activo: bool = Field(default=True)
 
 # ─── Request schemas ───────────────────────────────────────────────────────
@@ -17,7 +17,7 @@ class CategoriaCreate(CategoriaBase):
 class CategoriaUpdate(SQLModel):
     nombre: Optional[str] = Field(None, examples=["Bebidas"])
     descripcion: Optional[str] = Field(None, min_length=3)
-    imagen_url: Optional[str] = Field(default=None, nullable=True, examples=["https://example.com/categoria/muebles.jpg"])
+    imagen_url: Optional[str] = Field(default=None, json_schema_extra={"nullable": True}, examples=["https://example.com/categoria/muebles.jpg"])
     activo: Optional[bool] = None
     parent_id: Optional[int] = Field(default=None, examples=[1])
 

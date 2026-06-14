@@ -105,7 +105,7 @@ class ProductoService:
 
         if faltantes:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "mensaje": "Stock insuficiente para uno o más ingredientes.",
                     "ingredientes_sin_stock": faltantes,
