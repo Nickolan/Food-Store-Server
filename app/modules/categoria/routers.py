@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, UploadFile, File
 from typing import List, Optional
 from sqlmodel import Session
 from app.core.database import get_session
 from app.core.deps import require_roles
 from . import schemas
 from app.modules.categoria.services import CategoriaService
+from app.core.cloudinary import subir_imagen, eliminar_imagen
+from urllib.parse import unquote
 
 router = APIRouter(prefix="/categorias", tags=["Categorías"])
 
@@ -77,3 +79,37 @@ def actualizar_categoria(categoria: schemas.CategoriaUpdate, id: int = Path(...,
 )
 def borrado_logico(id: int = Path(..., gt=0), svs: CategoriaService = Depends(get_categoria_service)):
     return svs.desactivar(id)
+
+@router.post(
+    "/{id}/imagen",
+    response_model=schemas.CategoriaRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+async def subir_imagen_categoria(
+    id: int = Path(..., gt=0),
+    file: UploadFile = File(...),
+    svs: CategoriaService = Depends(get_categoria_service)
+):
+    contenido = await file.read()
+    result = subir_imagen(
+        file_bytes=contenido,
+        content_type=file.content_type,
+        carpeta="foodstore/categorias"
+    )
+    data = schemas.CategoriaUpdate(imagen_url=result["secure_url"])
+    return svs.actualizar_total(id, data)
+
+@router.delete(
+    "/{id}/imagen",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+async def eliminar_imagen_categoria(
+    id: int = Path(..., gt=0),
+    public_id: str = Query(...),
+    svs: CategoriaService = Depends(get_categoria_service)
+):
+    eliminar_imagen(unquote(public_id))
+    data = schemas.CategoriaUpdate(imagen_url=None)
+    svs.actualizar_total(id, data)
