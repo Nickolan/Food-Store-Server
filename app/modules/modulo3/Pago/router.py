@@ -57,14 +57,14 @@ def obtener_pagos(
     session: Session = Depends(get_session),
     service: PagoService = Depends(get_service),
 ):
-    if current_user.role.upper() != "ADMIN":
+    if not any(rol.codigo.upper() == "ADMIN" for rol in current_user.roles):
         todos = service.obtener_todos(skip=0, limit=9999)
         uow = PagoUnitOfWork(session)
         pagos_usuario = []
         with uow as u:
             for p in todos:
                 if p.pedido_id:
-                    pedido = u.pedidos.obtener_por_id(p.pedido_id)
+                    pedido = u.pedidos.get_by_id(p.pedido_id)
                     if pedido and pedido.usuario_id == current_user.id:
                         pagos_usuario.append(p)
         return pagos_usuario[skip : skip + limit]
@@ -90,10 +90,10 @@ def obtener_pago_por_id(
             detail="Pago no encontrado"
         )
         
-    if current_user.role.upper() != "ADMIN":
+    if not any(rol.codigo.upper() == "ADMIN" for rol in current_user.roles):
         uow = PagoUnitOfWork(session)
         with uow as u:
-            pedido = u.pedidos.obtener_por_id(pago.pedido_id)
+            pedido = u.pedidos.get_by_id(pago.pedido_id)
             if not pedido or pedido.usuario_id != current_user.id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN, 

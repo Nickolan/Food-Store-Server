@@ -1,5 +1,14 @@
+import os
+
+os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "test")
+os.environ.setdefault("CLOUDINARY_API_KEY", "test")
+os.environ.setdefault("CLOUDINARY_API_SECRET", "test")
+os.environ.setdefault("MP_ACCESS_TOKEN", "test")
+os.environ.setdefault("MP_WEBHOOK_SECRET", "test")
+
 import pytest
 from datetime import datetime
+from decimal import Decimal
 from sqlmodel import SQLModel, Session, create_engine
 from sqlmodel.pool import StaticPool
 from fastapi.testclient import TestClient
@@ -61,10 +70,10 @@ def client_fixture(session: Session, sqlite_engine):
 @pytest.fixture(name="roles_base", scope="function")
 def roles_base_fixture(session: Session):
     roles_data = [
-        {"codigo": "ADMIN",   "nombre": "Administrador",     "descripcion": "Acceso total"},
-        {"codigo": "STOCK",   "nombre": "Gestión de Stock",  "descripcion": "Maneja stock"},
-        {"codigo": "PEDIDOS", "nombre": "Gestión de Pedidos","descripcion": "Avanza estados"},
-        {"codigo": "CLIENT",  "nombre": "Cliente",           "descripcion": "Sus propios datos"},
+        {"codigo": "ADMIN",   "nombre": "Administrador",      "descripcion": "Acceso total"},
+        {"codigo": "STOCK",   "nombre": "Gestión de Stock",   "descripcion": "Maneja stock"},
+        {"codigo": "PEDIDOS", "nombre": "Gestión de Pedidos", "descripcion": "Avanza estados"},
+        {"codigo": "CLIENT",  "nombre": "Cliente",            "descripcion": "Sus propios datos"},
     ]
     roles = []
     for data in roles_data:
@@ -80,12 +89,12 @@ def roles_base_fixture(session: Session):
 @pytest.fixture(name="estados_pedido", scope="function")
 def estados_pedido_fixture(session: Session):
     estados_data = [
-        ("PENDIENTE",  "Pedido creado",        1, False),
-        ("CONFIRMADO", "Pago confirmado",       2, False),
-        ("EN_PREP",    "En preparación",        3, False),
-        ("EN_CAMINO",  "Despachado",            4, False),
-        ("ENTREGADO",  "Entrega confirmada",    5, True),
-        ("CANCELADO",  "Pedido cancelado",      6, True),
+        ("PENDIENTE",  "Pedido creado",     1, False),
+        ("CONFIRMADO", "Pago confirmado",   2, False),
+        ("EN_PREP",    "En preparación",    3, False),
+        ("EN_CAMINO",  "Despachado",        4, False),
+        ("ENTREGADO",  "Entrega confirmada",5, True),
+        ("CANCELADO",  "Pedido cancelado",  6, True),
     ]
     estados = []
     for codigo, desc, orden, terminal in estados_data:

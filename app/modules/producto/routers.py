@@ -195,5 +195,5 @@ def obtener_producto_por_categoria(
 @router.post("/upload-imagen", status_code=status.HTTP_200_OK)
 async def subir_imagen_producto(file: UploadFile=File(...)):
     contenido=await file.read()
-    url=subir_imagen(contenido)
-    return {"url": url}
+    resultado = subir_imagen(contenido, file.content_type or "image/jpeg")
+    return resultado

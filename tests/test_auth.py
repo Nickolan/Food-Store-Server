@@ -37,7 +37,7 @@ class TestRegister:
             "password": "123",
         }
         response = client.post("/api/v1/auth/", json=payload)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestLogin:

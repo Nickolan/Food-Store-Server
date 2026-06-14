@@ -24,7 +24,7 @@ class IngredienteBase(SQLModel):
 
     es_alergeno: bool = Field(default=False)
     unidad_medida_id: Optional[int] = Field(default=None)
-    activo: bool = Field(default=True, nullable=False)
+    activo: bool = Field(default=True, json_schema_extra={"nullable": False})
 
     unidad_medida_id: Optional[int] = Field(default=None)
 
@@ -48,7 +48,7 @@ class IngredienteUpdate(SQLModel):
 
     es_alergeno: Optional[bool] = None
     unidad_medida_id: Optional[int] = Field(default=None)
-    activo: bool = Field(default=True, nullable=False)
+    activo: bool = Field(default=True, json_schema_extra={"nullable": False})
 
 
 
