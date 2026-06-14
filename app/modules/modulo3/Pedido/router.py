@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, WebSocket, W
 from app.core.deps import get_current_user, require_roles
 from app.modules.usuario.models import Usuario
 
-router = APIRouter(prefix="/pedidos", tags=["Pedido"])
+router = APIRouter(prefix="/api/v6/pedidos", tags=["Pedido"])
 def get_service(session:Session=Depends(get_session)):
     uow=PedidoUnitOfWork(session)
     return PedidoService(uow=uow)

@@ -8,7 +8,7 @@ from app.modules.usuario.models import Usuario
 from . import schemas
 from app.modules.usuario.services import UsuarioService
 
-router = APIRouter(prefix="/api/v1/auth", tags=["Usuarios", "Auth"])
+router = APIRouter(prefix="/api/v6/auth", tags=["Usuarios", "Auth"])
 oauth2_scheme = HTTPBearer()
 
 def get_usuario_service(session: Session = Depends(get_session)) -> UsuarioService:

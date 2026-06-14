@@ -184,7 +184,7 @@ class TestPedidoCancelacion:
             f"/pedidos/{pedido.id}",
             cookies={"access_token": _token(admin_user)},
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_cancelar_pedido_con_motivo(self, client, session, admin_user, formas_pago, estados_pedido):
         pedido = Pedido(

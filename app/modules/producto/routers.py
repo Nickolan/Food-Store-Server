@@ -17,7 +17,7 @@ from app.modules.producto.schemas import (
 
 from app.modules.producto.services import ProductoService
 
-router = APIRouter(prefix="/productos", tags=["Productos"])
+router = APIRouter(prefix="/api/v6/productos", tags=["Productos"])
 
 def get_producto_service(session: Session = Depends(get_session)) -> ProductoService:
     return ProductoService(session)
@@ -195,5 +195,5 @@ def obtener_producto_por_categoria(
 @router.post("/upload-imagen", status_code=status.HTTP_200_OK)
 async def subir_imagen_producto(file: UploadFile=File(...)):
     contenido=await file.read()
-    url=subir_imagen(contenido)
-    return {"url": url}
+    resultado = subir_imagen(contenido, file.content_type or "image/jpeg")
+    return resultado

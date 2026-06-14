@@ -17,7 +17,7 @@ from .schemas import (
 from .service import EstadisticasService
 
 router = APIRouter(
-    prefix="/estadisticas",
+    prefix="/api/v6/estadisticas",
     tags=["Estadísticas"],
     dependencies=[Depends(require_roles(["ADMIN"]))],
 )
