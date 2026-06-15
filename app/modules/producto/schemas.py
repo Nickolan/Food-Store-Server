@@ -47,6 +47,7 @@ class ProductoRead(ProductoBase):
 class CategoriaBasicRead(SQLModel):
     """Schema reducido para evitar import circular."""
     id: int
+    nombre: str
     descripcion: str
     activo: bool
     imagen_url: Optional[str]
