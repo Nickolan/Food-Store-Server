@@ -12,6 +12,8 @@ Bienvenido al repositorio central de nuestra API RESTful de grado Enterprise. Es
    - **2:** Lautaro Ferreria
    - **3:** Rafael Navarro
    - **4:** Lucas Gordillo
+- **Video Parcial 1 Code:** [Video Code Parcial 1](https://www.youtube.com/watch?v=ATKjDeNDJtU)
+- **Video Parcial 1 Demo:** [Demo Parcial 1](https://www.youtube.com/watch?v=a2QTgLh3ZZE)   
 - **Video Parcial 2:** [Enlace al Video Parcial 2](https://drive.google.com/drive/folders/1n_cFn1rpYdJr5lxDtNeoFVYwZ87M9CdJ?usp=sharing)
 - **Video (demostración):** [Enlace al video 3](https://drive.google.com/drive/folders/1oW7RY88o79zgZGz9HX_dnWvFwinoY1Dx)
 
