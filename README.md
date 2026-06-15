@@ -179,17 +179,13 @@ CLOUDINARY_API_SECRET=tu-api-secret
 
 > **Nota:** Si solo querés levantar el servidor localmente sin pagos ni imágenes, podés poner valores ficticios para `MP_*` y `CLOUDINARY_*` (ej. `TEST-xxx` y `dummy`). La API arranca igual, solo fallarán los endpoints de pago y subida de imágenes.
 
-### 6. Aplicar migraciones
+### 6. Cargar datos iniciales
 
-El proyecto usa Alembic para versionar el esquema. Aplicá todas las migraciones existentes:
+Ejecuta el seed para inicializar la base de datos con datos predefinidos:
 
 ```bash
-alembic upgrade head
+python -m app.db.seed
 ```
-
-> Si el comando `alembic` no se encuentra, usá `python -m alembic upgrade head`.
-
-> Si no hay migraciones generadas todavía, el servidor las crea automáticamente en el startup via `SQLModel.metadata.create_all()`. De todas formas, **siempre preferí Alembic** para mantener el historial del esquema.
 
 ### 7. Levantar el servidor
 
