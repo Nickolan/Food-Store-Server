@@ -65,8 +65,7 @@ UNIDADES_MEDIDA = [
     {"nombre": "litro", "simbolo": "L", "tipo": "volumen"},
     {"nombre": "mililitro", "simbolo": "mL", "tipo": "volumen"},
     {"nombre": "pieza", "simbolo": "u", "tipo": "unidad"},
-    {"nombre": "docena", "simbolo": "doc", "tipo": "unidad"},
-    {"nombre": "metro cuadrado", "simbolo": "m^2", "tipo": "area"}
+    {"nombre": "porciones", "simbolo": "porciones", "tipo": "contable"}
 ]
 
 
@@ -133,13 +132,13 @@ def _seed_unidades_medida(session: Session) -> None:
 
 
 def _seed_admin(session: Session) -> None:
-    email_admin = "admin@admin.com"
+    email_admin = "admin@foodstore.com"
     admin_user = session.exec(
         select(Usuario).where(Usuario.email == email_admin)
     ).first()
 
     if not admin_user:
-        hashed = bcrypt.hashpw(b"admin", bcrypt.gensalt()).decode()
+        hashed = bcrypt.hashpw(b"Admin1234!", bcrypt.gensalt()).decode()
         admin_user = Usuario(
             nombre="Admin",
             apellido="Principal",
@@ -168,13 +167,13 @@ def _seed_admin(session: Session) -> None:
         print(" [✓] El administrador ya tiene asignado el rol 'ADMIN'.")
 
 def _seed_user_pedidos(session: Session) -> None:
-    email_admin = "pedidos@pedidos.com"
+    email_admin = "pedidos@foodstore.com"
     admin_user = session.exec(
         select(Usuario).where(Usuario.email == email_admin)
     ).first()
 
     if not admin_user:
-        hashed = bcrypt.hashpw(b"pedidos", bcrypt.gensalt()).decode()
+        hashed = bcrypt.hashpw(b"Pedidos1234!", bcrypt.gensalt()).decode()
         admin_user = Usuario(
             nombre="Pedidos",
             apellido="Principal",
@@ -202,6 +201,76 @@ def _seed_user_pedidos(session: Session) -> None:
     else:
         print(" [✓] El usuario pedidos ya tiene asignado el rol 'PEDIDOS'.")
 
+def _seed_user_stock(session: Session) -> None:
+    email_admin = "stock@foodstore.com"
+    admin_user = session.exec(
+        select(Usuario).where(Usuario.email == email_admin)
+    ).first()
+
+    if not admin_user:
+        hashed = bcrypt.hashpw(b"Stock1234!", bcrypt.gensalt()).decode()
+        admin_user = Usuario(
+            nombre="Stock",
+            apellido="Principal",
+            email=email_admin,
+            password_hash=hashed,
+        )
+        session.add(admin_user)
+        session.commit()
+        session.refresh(admin_user)
+        print(f" [+] Usuario stock creado: {email_admin}")
+    else:
+        print(f" [✓] Usuario stock ya existe: {email_admin}")
+
+    asignacion = session.exec(
+        select(UsuarioRol).where(
+            UsuarioRol.usuario_id == admin_user.id,
+            UsuarioRol.rol_codigo == "STOCK",
+        )
+    ).first()
+
+    if not asignacion:
+        session.add(UsuarioRol(usuario_id=admin_user.id, rol_codigo="STOCK"))
+        session.commit()
+        print(" [+] Rol 'STOCK' asignado al usuario stock.")
+    else:
+        print(" [✓] El usuario stock ya tiene asignado el rol 'STOCK'.")
+
+def _seed_user_client(session: Session) -> None:
+    email_admin = "client@foodstore.com"
+    admin_user = session.exec(
+        select(Usuario).where(Usuario.email == email_admin)
+    ).first()
+
+    if not admin_user:
+        hashed = bcrypt.hashpw(b"Client1234!", bcrypt.gensalt()).decode()
+        admin_user = Usuario(
+            nombre="Client",
+            apellido="Principal",
+            email=email_admin,
+            password_hash=hashed,
+        )
+        session.add(admin_user)
+        session.commit()
+        session.refresh(admin_user)
+        print(f" [+] Usuario client creado: {email_admin}")
+    else:
+        print(f" [✓] Usuario client ya existe: {email_admin}")
+
+    asignacion = session.exec(
+        select(UsuarioRol).where(
+            UsuarioRol.usuario_id == admin_user.id,
+            UsuarioRol.rol_codigo == "CLIENT",
+        )
+    ).first()
+
+    if not asignacion:
+        session.add(UsuarioRol(usuario_id=admin_user.id, rol_codigo="CLIENT"))
+        session.commit()
+        print(" [+] Rol 'CLIENT' asignado al usuario client.")
+    else:
+        print(" [✓] El usuario client ya tiene asignado el rol 'CLIENT'.")
+
 
 
 def seed_db() -> None:
@@ -216,6 +285,8 @@ def seed_db() -> None:
         _seed_unidades_medida(session)
         _seed_admin(session)
         _seed_user_pedidos(session)
+        _seed_user_stock(session)
+        _seed_user_client(session)
     print("Seed finalizado con éxito.")
 
 
