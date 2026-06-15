@@ -192,8 +192,3 @@ def obtener_producto_por_categoria(
     print(f"Obteniendo productos por categoría con ID: {id}")
     producto = svc.obtener_producto_por_categoria(categoria_id=id)
     return producto
-@router.post("/upload-imagen", status_code=status.HTTP_200_OK)
-async def subir_imagen_producto(file: UploadFile=File(...)):
-    contenido=await file.read()
-    resultado = subir_imagen(contenido, file.content_type or "image/jpeg")
-    return resultado
