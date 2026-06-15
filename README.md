@@ -1,4 +1,4 @@
-# 🚀 Sistema de Gestión Integral - FastAPI & Clean Architecture
+# 🚀 Sistema de Gestión Integral — FastAPI & Clean Architecture
 
 Bienvenido al repositorio central de nuestra API RESTful de grado Enterprise. Este proyecto está diseñado desde cero para soportar la operativa compleja de un sistema de pedidos, control de inventario y logística de entregas, aplicando de forma estricta **Patrones de Arquitectura Limpia (Clean Architecture)**.
 
@@ -12,8 +12,9 @@ Bienvenido al repositorio central de nuestra API RESTful de grado Enterprise. Es
    - **2:** Lautaro Ferreria
    - **3:** Rafael Navarro
    - **4:** Lucas Gordillo
-- **Video (demostración):** [Enlace al video](https://drive.google.com/drive/folders/1n_cFn1rpYdJr5lxDtNeoFVYwZ87M9CdJ?usp=sharing)
+- **Video (demostración):** [Enlace al video](https://drive.google.com/drive/folders/1oW7RY88o79zgZGz9HX_dnWvFwinoY1Dx)
 
+---
 
 ## 🏛️ Arquitectura y Patrones de Diseño
 
@@ -64,30 +65,187 @@ El motor transaccional del negocio.
 | Capa | Tecnología | Propósito |
 | :--- | :--- | :--- |
 | **Framework Web** | [FastAPI](https://fastapi.tiangolo.com/) | Alto rendimiento, tipado estático, validación nativa y documentación Swagger autogenerada. |
-| **ORM & Validaciones**| [SQLModel](https://sqlmodel.tiangolo.com/) | Fusión perfecta entre SQLAlchemy 2.0 y Pydantic. |
-| **Base de Datos** | PostgreSQL / PostgreSQL Dialects | Soporte para tipos de datos complejos como `ARRAY`. |
+| **ORM & Validaciones** | [SQLModel](https://sqlmodel.tiangolo.com/) | Fusión perfecta entre SQLAlchemy 2.0 y Pydantic. |
+| **Base de Datos** | PostgreSQL | Soporte para tipos de datos complejos como `ARRAY`. |
+| **Migraciones** | Alembic | Versionado del esquema de base de datos. |
 | **Testing** | `pytest` + `pytest-asyncio` | Suite de pruebas asíncronas para validación de servicios y repositorios. |
 | **Seguridad** | `passlib` + `python-jose` | Gestión robusta de JWT y hashing seguro de credenciales. |
+| **Imágenes** | Cloudinary | Subida y gestión de imágenes de productos. |
+| **Pagos** | Mercado Pago SDK | Integración de checkout y webhooks de pago. |
 
 ---
 
-## 🚀 Puesta en Marcha
+## 🖥️ Prerrequisitos (máquina limpia)
 
-1. **Clonar repositorio e instalar dependencias:**
-   Recomendamos usar un entorno virtual.
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # En Windows: .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+Antes de empezar, asegurate de tener instalado:
 
-2. **Configurar el entorno:**
-   Verificar el archivo `.env` o la configuración de conexión a la base de datos PostgreSQL.
+| Herramienta | Versión mínima | Verificación |
+| :--- | :--- | :--- |
+| **Python** | 3.11+ | `python --version` |
+| **PostgreSQL** | 14+ | `psql --version` |
+| **pip** | incluido con Python | `pip --version` |
 
-3. **Ejecutar el servidor de desarrollo:**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+> **Windows:** PostgreSQL se descarga desde [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). Durante la instalación anotá el usuario (`postgres`) y la contraseña que configurás — las vas a necesitar en el `.env`.
 
-4. **Explorar la API:**
-   Ingresa a `http://localhost:8000/docs` para visualizar y probar la interfaz Swagger UI autogenerada.
+---
+
+## 🚀 Setup paso a paso
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd Server
+```
+
+### 2. Crear y activar el entorno virtual
+
+```bash
+# Crear el venv
+python -m venv .venv
+
+# Activar — Linux/macOS
+source .venv/bin/activate
+
+# Activar — Windows (PowerShell)
+.venv\Scripts\Activate.ps1
+
+# Activar — Windows (CMD)
+.venv\Scripts\activate.bat
+```
+
+> Deberías ver `(.venv)` al inicio del prompt cuando esté activo.
+
+### 3. Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Crear la base de datos en PostgreSQL
+
+Conectate a PostgreSQL con tu cliente preferido (psql, pgAdmin, DBeaver) y ejecutá:
+
+```sql
+CREATE DATABASE db_parcial_python;
+```
+
+> Si querés usar otro nombre, acordate de reflejarlo en `POSTGRES_DB` del `.env`.
+
+### 5. Configurar las variables de entorno
+
+Copiá el archivo de ejemplo:
+
+```bash
+# Linux/macOS
+cp .env.example .env
+
+# Windows (PowerShell)
+Copy-Item .env.example .env
+```
+
+Abrí `.env` y completá **todos** los campos:
+
+```env
+# ─── PostgreSQL ───────────────────────────────────────────────────────────────
+DATABASE_URL=postgresql://postgres:nikolan@localhost:5432/db_parcial_python 
+
+# ─── JWT ──────────────────────────────────────────────────────────────────────
+# Generá una clave segura con:
+#   python -c "import secrets; print(secrets.token_hex(32))"
+SECRET_KEY=clave-secreta-de-minimo-32-caracteres
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# ─── CORS ─────────────────────────────────────────────────────────────────────
+# Formato JSON array — incluí el origen de tu frontend
+CORS_ORIGINS=["http://localhost:5173"]
+
+# ─── Frontend ─────────────────────────────────────────────────────────────────
+FRONTEND_URL=http://localhost:5173
+
+# ─── Mercado Pago ─────────────────────────────────────────────────────────────
+# Credenciales de prueba: https://www.mercadopago.com.ar/developers/panel/app
+MP_ACCESS_TOKEN=TEST-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+MP_NOTIFICATION_URL=https://tu-dominio-ngrok.ngrok-free.app/api/v6/pagos/webhook
+MP_WEBHOOK_SECRET=tu-webhook-secret
+
+# ─── Cloudinary ───────────────────────────────────────────────────────────────
+# Credenciales: https://cloudinary.com/console
+CLOUDINARY_CLOUD_NAME=tu-cloud-name
+CLOUDINARY_API_KEY=tu-api-key
+CLOUDINARY_API_SECRET=tu-api-secret
+```
+
+> **Nota:** Si solo querés levantar el servidor localmente sin pagos ni imágenes, podés poner valores ficticios para `MP_*` y `CLOUDINARY_*` (ej. `TEST-xxx` y `dummy`). La API arranca igual, solo fallarán los endpoints de pago y subida de imágenes.
+
+### 6. Aplicar migraciones
+
+El proyecto usa Alembic para versionar el esquema. Aplicá todas las migraciones existentes:
+
+```bash
+alembic upgrade head
+```
+
+> Si el comando `alembic` no se encuentra, usá `python -m alembic upgrade head`.
+
+> Si no hay migraciones generadas todavía, el servidor las crea automáticamente en el startup via `SQLModel.metadata.create_all()`. De todas formas, **siempre preferí Alembic** para mantener el historial del esquema.
+
+### 7. Levantar el servidor
+
+```bash
+uvicorn app.main:app --reload
+```
+
+El servidor arranca en `http://localhost:8000`.
+
+El flag `--reload` activa el hot-reload: el servidor se reinicia automáticamente cada vez que guardás un archivo Python.
+
+---
+
+## ✅ Verificación
+
+Una vez que el servidor esté corriendo, abrí estas URLs en el navegador:
+
+| URL | Qué muestra |
+| :--- | :--- |
+| `http://localhost:8000/docs` | **Swagger UI** — documentación interactiva completa |
+| `http://localhost:8000/redoc` | ReDoc — documentación alternativa |
+| `http://localhost:8000/debug/ws-rooms` | Estado de conexiones WebSocket activas |
+
+Si ves la interfaz de Swagger, el setup está completo. 🎉
+
+---
+
+## 🐛 Problemas frecuentes
+
+### `connection refused` al conectar con PostgreSQL
+- Verificá que el servicio de PostgreSQL esté corriendo.
+  - Linux: `sudo systemctl status postgresql`
+  - Windows: buscá "Servicios" → `postgresql-x64-XX`
+- Confirmá que `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` en el `.env` coincidan con tu instalación local.
+
+### `ModuleNotFoundError`
+- Asegurate de haber **activado el entorno virtual** antes de correr `pip install` y `uvicorn`.
+- El prompt debe mostrar `(.venv)` al inicio.
+
+### `SECRET_KEY field required` u otros campos requeridos
+- El archivo `.env` debe estar en la raíz del directorio `Server/`, al mismo nivel que `alembic.ini` y `requirements.txt`.
+- Verificá que no haya espacios alrededor del `=` en las variables (correcto: `SECRET_KEY=valor`, incorrecto: `SECRET_KEY = valor`).
+
+### `alembic: command not found`
+- Probá `python -m alembic upgrade head` (Alembic se instala dentro del venv, no globalmente).
+
+### Error de CORS al conectar el frontend
+- Asegurate de que la URL de tu frontend esté incluida en `CORS_ORIGINS` del `.env`.
+- Formato correcto: `CORS_ORIGINS=["http://localhost:5173"]` (JSON array, con comillas en las URLs).
+
+---
+
+## 🧪 Correr los tests
+
+```bash
+pytest
+```
+
+Los tests usan SQLite en memoria (configurado en `conftest.py`), por lo que **no necesitás PostgreSQL corriendo** para ejecutarlos.

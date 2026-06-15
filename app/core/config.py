@@ -12,23 +12,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # ─── Base de datos (PostgreSQL — patrón u_05_v2) ──────────────────────────
-    postgres_user:     str = "postgres"
-    postgres_password: str = "tutuca05"
-    postgres_db:       str = "db_parcial_python"
-    postgres_host:     str = "localhost"
-    postgres_port:     int = 5432
-
-    @computed_field
-    @property
-    def DATABASE_URL(self) -> str:
-        """
-        Construye la URL de conexión a PostgreSQL.
-        Para tests se sobreescribe con SQLite en memoria desde conftest.py.
-        """
-        return (
-            f"postgresql://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
-        )
+    DATABASE_URL: str = "postgresql://user:pass@localhost:5432/foodstore_db"
 
     # ─── JWT ──────────────────────────────────────────────────────────────────
     SECRET_KEY: str
