@@ -4,7 +4,6 @@ os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "test")
 os.environ.setdefault("CLOUDINARY_API_KEY", "test")
 os.environ.setdefault("CLOUDINARY_API_SECRET", "test")
 os.environ.setdefault("MP_ACCESS_TOKEN", "test")
-os.environ.setdefault("MP_WEBHOOK_SECRET", "test")
 
 import pytest
 from datetime import datetime

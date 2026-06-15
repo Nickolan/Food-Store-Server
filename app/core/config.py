@@ -27,7 +27,6 @@ class Settings(BaseSettings):
 
     # ─── Mercado Pago ─────────────────────────────────────────────────────────
     MP_ACCESS_TOKEN: str
-    MP_WEBHOOK_SECRET: str
     MP_NOTIFICATION_URL: str = ""
     MP_WEBHOOK_URL: str = ""
 
