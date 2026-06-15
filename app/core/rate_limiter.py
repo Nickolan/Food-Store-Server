@@ -7,8 +7,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 AUTH_ENDPOINTS = {
-    "/api/v1/auth/token",
-    "/api/v1/auth/",
+    "/api/v6/auth/token",
+    "/api/v6/auth/",
 }
 
 

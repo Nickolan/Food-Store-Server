@@ -12,7 +12,7 @@ class TestRegister:
             "email": "nuevo@test.com",
             "password": "password123",
         }
-        response = client.post("/api/v1/auth/", json=payload)
+        response = client.post("/api/v6/auth/", json=payload)
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["email"] == "nuevo@test.com"
@@ -26,7 +26,7 @@ class TestRegister:
             "email": client_user.email,
             "password": "password123",
         }
-        response = client.post("/api/v1/auth/", json=payload)
+        response = client.post("/api/v6/auth/", json=payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_register_password_corta(self, client, roles_base):
@@ -36,26 +36,26 @@ class TestRegister:
             "email": "corto@test.com",
             "password": "123",
         }
-        response = client.post("/api/v1/auth/", json=payload)
+        response = client.post("/api/v6/auth/", json=payload)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestLogin:
     def test_login_exitoso(self, client, admin_user):
         payload = {"email": admin_user.email, "password": "adminpass123"}
-        response = client.post("/api/v1/auth/token", json=payload)
+        response = client.post("/api/v6/auth/token", json=payload)
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.cookies
         assert response.json()["mensaje"] == "Login exitoso. Sesión iniciada."
 
     def test_login_wrong_password(self, client, admin_user):
         payload = {"email": admin_user.email, "password": "wrongpass"}
-        response = client.post("/api/v1/auth/token", json=payload)
+        response = client.post("/api/v6/auth/token", json=payload)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_login_usuario_inexistente(self, client, roles_base):
         payload = {"email": "noexiste@test.com", "password": "password123"}
-        response = client.post("/api/v1/auth/token", json=payload)
+        response = client.post("/api/v6/auth/token", json=payload)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_login_usuario_desactivado(self, client, session, roles_base):
@@ -73,7 +73,7 @@ class TestLogin:
         session.commit()
 
         payload = {"email": "deleted@test.com", "password": "password123"}
-        response = client.post("/api/v1/auth/token", json=payload)
+        response = client.post("/api/v6/auth/token", json=payload)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -84,7 +84,7 @@ class TestLogout:
             "id": admin_user.id,
             "roles": [r.codigo for r in admin_user.roles],
         })
-        response = client.post("/api/v1/auth/logout", cookies={"access_token": token})
+        response = client.post("/api/v6/auth/logout", cookies={"access_token": token})
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["mensaje"] == "Sesión cerrada exitosamente"
 
@@ -96,12 +96,12 @@ class TestMe:
             "id": admin_user.id,
             "roles": [r.codigo for r in admin_user.roles],
         })
-        response = client.get("/api/v1/auth/me", cookies={"access_token": token})
+        response = client.get("/api/v6/auth/me", cookies={"access_token": token})
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["email"] == admin_user.email
 
     def test_me_sin_token(self, client):
-        response = client.get("/api/v1/auth/me")
+        response = client.get("/api/v6/auth/me")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -112,7 +112,7 @@ class TestRBAC:
             "id": admin_user.id,
             "roles": [r.codigo for r in admin_user.roles],
         })
-        response = client.get("/api/v1/auth/roles", cookies={"access_token": token})
+        response = client.get("/api/v6/auth/roles", cookies={"access_token": token})
         assert response.status_code == status.HTTP_200_OK
         assert len(response.json()) >= 4
 
@@ -122,7 +122,7 @@ class TestRBAC:
             "id": client_user.id,
             "roles": [r.codigo for r in client_user.roles],
         })
-        response = client.get("/api/v1/auth/roles", cookies={"access_token": token})
+        response = client.get("/api/v6/auth/roles", cookies={"access_token": token})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -130,18 +130,18 @@ class TestRateLimit:
     def test_rate_limit_tras_5_intentos_fallidos(self, client, admin_user):
         payload = {"email": admin_user.email, "password": "wrongpass"}
         for _ in range(5):
-            client.post("/api/v1/auth/token", json=payload)
+            client.post("/api/v6/auth/token", json=payload)
 
-        response = client.post("/api/v1/auth/token", json=payload)
+        response = client.post("/api/v6/auth/token", json=payload)
         assert response.status_code == 429
         assert "Retry-After" in response.headers
 
     def test_rate_limit_permite_login_tras_4_fallos(self, client, admin_user):
         payload_fail = {"email": admin_user.email, "password": "wrongpass"}
         for _ in range(4):
-            client.post("/api/v1/auth/token", json=payload_fail)
+            client.post("/api/v6/auth/token", json=payload_fail)
 
         payload_ok = {"email": admin_user.email, "password": "adminpass123"}
-        response = client.post("/api/v1/auth/token", json=payload_ok)
+        response = client.post("/api/v6/auth/token", json=payload_ok)
         assert response.status_code == status.HTTP_200_OK
         assert "access_token" in response.cookies

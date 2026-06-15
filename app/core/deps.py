@@ -42,7 +42,7 @@ class OAuth2PasswordBearerWithCookie(OAuth2PasswordBearer):
         return token
 
 # Define el esquema OAuth2 que extrae el token de la cookie (o header)
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/api/v1/auth/token")
+oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/api/v6/auth/token")
 
 
 async def get_current_user(

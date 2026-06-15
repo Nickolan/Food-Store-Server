@@ -55,7 +55,7 @@ def mock_mp():
 def test_crear_pago_exitoso(client, client_user, pedido_pendiente):
     cookies = {"access_token": _token(client_user)}
     response = client.post(
-        "/api/v1/pagos/",
+        "/api/v6/pagos/",
         json={"pedido_id": pedido_pendiente.id},
         cookies=cookies,
     )
@@ -65,7 +65,7 @@ def test_crear_pago_exitoso(client, client_user, pedido_pendiente):
 def test_crear_pago_pedido_no_pendiente(client, client_user, pedido_confirmado):
     cookies = {"access_token": _token(client_user)}
     response = client.post(
-        "/api/v1/pagos/",
+        "/api/v6/pagos/",
         json={"pedido_id": pedido_confirmado.id},
         cookies=cookies,
     )
@@ -75,7 +75,7 @@ def test_crear_pago_pedido_no_pendiente(client, client_user, pedido_confirmado):
 def test_crear_pago_pedido_inexistente(client, client_user):
     cookies = {"access_token": _token(client_user)}
     response = client.post(
-        "/api/v1/pagos/",
+        "/api/v6/pagos/",
         json={"pedido_id": 99999},
         cookies=cookies,
     )
@@ -84,7 +84,7 @@ def test_crear_pago_pedido_inexistente(client, client_user):
 
 def test_crear_pago_sin_auth(client, pedido_pendiente):
     response = client.post(
-        "/api/v1/pagos/",
+        "/api/v6/pagos/",
         json={"pedido_id": pedido_pendiente.id},
     )
     assert response.status_code == 401
@@ -92,7 +92,7 @@ def test_crear_pago_sin_auth(client, pedido_pendiente):
 
 def test_listar_pagos_admin(client, admin_user, pago):
     cookies = {"access_token": _token(admin_user)}
-    response = client.get("/api/v1/pagos/", cookies=cookies)
+    response = client.get("/api/v6/pagos/", cookies=cookies)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -101,7 +101,7 @@ def test_listar_pagos_admin(client, admin_user, pago):
 
 def test_listar_pagos_client(client, client_user, pago):
     cookies = {"access_token": _token(client_user)}
-    response = client.get("/api/v1/pagos/", cookies=cookies)
+    response = client.get("/api/v6/pagos/", cookies=cookies)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -112,14 +112,14 @@ def test_listar_pagos_client(client, client_user, pago):
 
 def test_obtener_pago_por_id(client, admin_user, pago):
     cookies = {"access_token": _token(admin_user)}
-    response = client.get(f"/api/v1/pagos/{pago.id}", cookies=cookies)
+    response = client.get(f"/api/v6/pagos/{pago.id}", cookies=cookies)
     assert response.status_code == 200
     assert response.json()["id"] == pago.id
 
 
 def test_obtener_pago_inexistente(client, admin_user):
     cookies = {"access_token": _token(admin_user)}
-    response = client.get("/api/v1/pagos/99999", cookies=cookies)
+    response = client.get("/api/v6/pagos/99999", cookies=cookies)
     assert response.status_code == 404
 
 
@@ -141,14 +141,14 @@ def test_client_ve_pago_ajeno(client, session, roles_base, pago):
     session.refresh(otro_client)
 
     cookies = {"access_token": _token(otro_client)}
-    response = client.get(f"/api/v1/pagos/{pago.id}", cookies=cookies)
+    response = client.get(f"/api/v6/pagos/{pago.id}", cookies=cookies)
     assert response.status_code == 403
 
 
 def test_admin_actualiza_pago(client, admin_user, pago):
     cookies = {"access_token": _token(admin_user)}
     response = client.put(
-        f"/api/v1/pagos/{pago.id}",
+        f"/api/v6/pagos/{pago.id}",
         json={"mp_status": "approved"},
         cookies=cookies,
     )
@@ -158,7 +158,7 @@ def test_admin_actualiza_pago(client, admin_user, pago):
 def test_pedidos_actualiza_pago(client, pedidos_user, pago):
     cookies = {"access_token": _token(pedidos_user)}
     response = client.put(
-        f"/api/v1/pagos/{pago.id}",
+        f"/api/v6/pagos/{pago.id}",
         json={"mp_status": "approved"},
         cookies=cookies,
     )
@@ -168,7 +168,7 @@ def test_pedidos_actualiza_pago(client, pedidos_user, pago):
 def test_actualizar_pago_inexistente(client, admin_user):
     cookies = {"access_token": _token(admin_user)}
     response = client.put(
-        "/api/v1/pagos/99999",
+        "/api/v6/pagos/99999",
         json={"mp_status": "approved"},
         cookies=cookies,
     )
@@ -176,10 +176,10 @@ def test_actualizar_pago_inexistente(client, admin_user):
 
 
 def test_webhook_con_data_id(client, admin_user):
-    response = client.post("/api/v1/pagos/webhook?data.id=123")
+    response = client.post("/api/v6/pagos/webhook?data.id=123")
     assert response.status_code == 200
 
 
 def test_webhook_sin_data_id(client):
-    response = client.post("/api/v1/pagos/webhook")
+    response = client.post("/api/v6/pagos/webhook")
     assert response.status_code == 200
