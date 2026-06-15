@@ -196,6 +196,8 @@ El servidor arranca en `http://localhost:8000`.
 
 El flag `--reload` activa el hot-reload: el servidor se reinicia automáticamente cada vez que guardás un archivo Python.
 
+> **Nota:** Si el comando uvicorn no funcion, intenta con `python -m fastapi dev .\app\main.py`
+
 ---
 
 ## ✅ Verificación
