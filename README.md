@@ -94,7 +94,7 @@ Antes de empezar, asegurate de tener instalado:
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/Nickolan/Food-Store-Server.git
 cd Food-Store-Server
 ```
 
@@ -130,7 +130,7 @@ Conectate a PostgreSQL con tu cliente preferido (psql, pgAdmin, DBeaver) y ejecu
 CREATE DATABASE db_parcial_python;
 ```
 
-> Si querés usar otro nombre, acordate de reflejarlo en `POSTGRES_DB` del `.env`.
+> Si querés usar otro nombre, acordate de reflejarlo en `DATABASE_URL` del `.env`.
 
 ### 5. Configurar las variables de entorno
 
@@ -168,7 +168,6 @@ FRONTEND_URL=http://localhost:5173
 # Credenciales de prueba: https://www.mercadopago.com.ar/developers/panel/app
 MP_ACCESS_TOKEN=TEST-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 MP_NOTIFICATION_URL=https://tu-dominio-ngrok.ngrok-free.app/api/v6/pagos/webhook
-MP_WEBHOOK_SECRET=tu-webhook-secret
 
 # ─── Cloudinary ───────────────────────────────────────────────────────────────
 # Credenciales: https://cloudinary.com/console
