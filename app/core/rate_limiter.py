@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-
 AUTH_ENDPOINTS = {
     "/api/v1/auth/token",
     "/api/v1/auth/",
@@ -33,32 +32,32 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             ip = self._get_client_ip(request)
             self._clean_expired(ip)
 
-            # Procesar el request siempre
+            current_attempts = len(self.attempts.get(ip, []))
+            if current_attempts >= self.max_attempts:
+                print(f"DEBUG: ip={ip} bloqueada por rate limit. Intentos={current_attempts}, max={self.max_attempts}")
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "detail": (
+                            f"Demasiados intentos fallidos. "
+                            f"Intentá nuevamente en {self.window_seconds // 60} minutos."
+                        )
+                    },
+                    headers={"Retry-After": str(self.window_seconds)},
+                )
+
             response = await call_next(request)
 
             if response.status_code == 401:
-                # Sumar el intento fallido
                 if ip not in self.attempts:
                     self.attempts[ip] = []
                 self.attempts[ip].append(time.time())
-
-                current_attempts = len(self.attempts[ip])
-                print(f"DEBUG: ip={ip}, attempts={current_attempts}, max={self.max_attempts}")
-
-                if current_attempts > self.max_attempts:
-                    return JSONResponse(
-                        status_code=429,
-                        content={
-                            "detail": (
-                                f"Demasiados intentos fallidos. "
-                                f"Intentá nuevamente en {self.window_seconds // 60} minutos."
-                            )
-                        },
-                        headers={"Retry-After": str(self.window_seconds)},
-                    )
+                print(f"DEBUG: ip={ip}, intento fallido. Intentos actuales={len(self.attempts[ip])}")
 
             elif response.status_code in (200, 201):
-                self.attempts.pop(ip, None)
+                if ip in self.attempts:
+                    del self.attempts[ip]
+                    print(f"DEBUG: ip={ip}, login exitoso - contador reseteado")
 
             return response
 
