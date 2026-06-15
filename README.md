@@ -223,7 +223,7 @@ Si ves la interfaz de Swagger, el setup está completo. 🎉
 - Verificá que el servicio de PostgreSQL esté corriendo.
   - Linux: `sudo systemctl status postgresql`
   - Windows: buscá "Servicios" → `postgresql-x64-XX`
-- Confirmá que `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` en el `.env` coincidan con tu instalación local.
+- Confirmá que `DATABASE_URL` en el `.env` coincidan con tu instalación local.
 
 ### `ModuleNotFoundError`
 - Asegurate de haber **activado el entorno virtual** antes de correr `pip install` y `uvicorn`.
@@ -246,6 +246,8 @@ Si ves la interfaz de Swagger, el setup está completo. 🎉
 
 ```bash
 pytest
+
+pytest -v -k "rate_limit" # Para test de limite de uso
 ```
 
 Los tests usan SQLite en memoria (configurado en `conftest.py`), por lo que **no necesitás PostgreSQL corriendo** para ejecutarlos.
