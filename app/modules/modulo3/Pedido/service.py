@@ -191,7 +191,11 @@ class PedidoService:
                     ingrediente.stock_cantidad -= link.cantidad * detalle.cantidad
                     uow.ingredientes.add(ingrediente)
             await self.avanzar_estado(uow=uow, pedido=nuevo_pedido, nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
-            return PedidoRead.model_validate(nuevo_pedido)
+            result = PedidoRead.model_validate(nuevo_pedido)
+
+        # Emitir FUERA del with -> sesión ya cerrada
+        await self._emit_ws_events(pedido_id=result.id, destino=result.estado_codigo, result=result)
+        return result
     
     def obtener_pedidos_por_usuario(self, usuario_id:int, skip:int, limit:int)->List[PedidoRead]:
         with self.uow as uow:
