@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from app.core.security import create_access_token
 
-UPLOAD_ENDPOINT = "/productos/upload-imagen"
+UPLOAD_ENDPOINT = "/api/v6/uploads/imagen"
 
 
 def _token(user):
@@ -39,7 +39,8 @@ def test_subir_imagen_exitosamente(client, admin_user):
         files={"file": ("test.jpg", fake_file, "image/jpeg")},
         cookies=cookies,
     )
-    assert response.status_code == 200
+    
+    assert response.status_code == 201
     assert response.json()["secure_url"] == "https://res.cloudinary.com/fake"
 
 
