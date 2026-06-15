@@ -94,7 +94,7 @@ Antes de empezar, asegurate de tener instalado:
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <url-del-repositorio>
+git clone https://github.com/Nickolan/Food-Store-Server.git
 cd Food-Store-Server
 ```
 
@@ -130,7 +130,7 @@ Conectate a PostgreSQL con tu cliente preferido (psql, pgAdmin, DBeaver) y ejecu
 CREATE DATABASE db_parcial_python;
 ```
 
-> Si querés usar otro nombre, acordate de reflejarlo en `POSTGRES_DB` del `.env`.
+> Si querés usar otro nombre, acordate de reflejarlo en `DATABASE_URL` del `.env`.
 
 ### 5. Configurar las variables de entorno
 
