@@ -95,7 +95,7 @@ Antes de empezar, asegurate de tener instalado:
 
 ```bash
 git clone <url-del-repositorio>
-cd Server
+cd Food-Store-Server
 ```
 
 ### 2. Crear y activar el entorno virtual
