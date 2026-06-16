@@ -4,6 +4,7 @@ os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "test")
 os.environ.setdefault("CLOUDINARY_API_KEY", "test")
 os.environ.setdefault("CLOUDINARY_API_SECRET", "test")
 os.environ.setdefault("MP_ACCESS_TOKEN", "test")
+os.environ.setdefault("FRONTEND_URL", "http://localhost:5173")  # Agregado
 
 import pytest
 from datetime import datetime

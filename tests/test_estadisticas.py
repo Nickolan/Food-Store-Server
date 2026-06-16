@@ -37,41 +37,41 @@ class TestEstadisticasRBAC:
     """
 
     def test_resumen_rechaza_no_autenticado(self, client):
-        r = client.get("/estadisticas/resumen")
+        r = client.get("/api/v6/estadisticas/resumen")
         assert r.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_resumen_rechaza_client(self, client, client_user):
-        r = client.get("/estadisticas/resumen",
+        r = client.get("/api/v6/estadisticas/resumen",
                        cookies={"access_token": _token(client_user)})
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     def test_ventas_rechaza_client(self, client, client_user):
         r = client.get(
-            "/estadisticas/ventas?desde=2025-01-01&hasta=2025-12-31",
+            "/api/v6/estadisticas/ventas?desde=2025-01-01&hasta=2025-12-31",
             cookies={"access_token": _token(client_user)},
         )
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     def test_productos_top_rechaza_client(self, client, client_user):
-        r = client.get("/estadisticas/productos-top",
+        r = client.get("/api/v6/estadisticas/productos-top",
                        cookies={"access_token": _token(client_user)})
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     def test_pedidos_estado_rechaza_client(self, client, client_user):
-        r = client.get("/estadisticas/pedidos-por-estado",
+        r = client.get("/api/v6/estadisticas/pedidos-por-estado",
                        cookies={"access_token": _token(client_user)})
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     def test_ingresos_rechaza_client(self, client, client_user):
         r = client.get(
-            "/estadisticas/ingresos?desde=2025-01-01&hasta=2025-12-31",
+            "/api/v6/estadisticas/ingresos?desde=2025-01-01&hasta=2025-12-31",
             cookies={"access_token": _token(client_user)},
         )
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
     # Triangulación: pedidos_user tampoco tiene acceso
     def test_resumen_rechaza_pedidos_user(self, client, pedidos_user):
-        r = client.get("/estadisticas/resumen",
+        r = client.get("/api/v6/estadisticas/resumen",
                        cookies={"access_token": _token(pedidos_user)})
         assert r.status_code == status.HTTP_403_FORBIDDEN
 
@@ -80,12 +80,12 @@ class TestEstadisticasRBAC:
 
 class TestPedidosPorEstadoEndpoint:
     """
-    GET /estadisticas/pedidos-por-estado es SQLite-compatible (GROUP BY sin
+    GET /api/v6/estadisticas/pedidos-por-estado es SQLite-compatible (GROUP BY sin
     funciones de fecha). Verifica estructura de respuesta con datos reales.
     """
 
     def test_retorna_lista_vacia_sin_pedidos(self, client, admin_user, roles_base):
-        r = client.get("/estadisticas/pedidos-por-estado",
+        r = client.get("/api/v6/estadisticas/pedidos-por-estado",
                        cookies={"access_token": _token(admin_user)})
         assert r.status_code == status.HTTP_200_OK
         assert r.json() == []
@@ -107,7 +107,7 @@ class TestPedidosPorEstadoEndpoint:
         ))
         session.commit()
 
-        r = client.get("/estadisticas/pedidos-por-estado",
+        r = client.get("/api/v6/estadisticas/pedidos-por-estado",
                        cookies={"access_token": _token(admin_user)})
         assert r.status_code == status.HTTP_200_OK
 
@@ -124,7 +124,7 @@ class TestPedidosPorEstadoEndpoint:
         ))
         session.commit()
 
-        r = client.get("/estadisticas/pedidos-por-estado",
+        r = client.get("/api/v6/estadisticas/pedidos-por-estado",
                        cookies={"access_token": _token(admin_user)})
         assert r.status_code == status.HTTP_200_OK
         for item in r.json():

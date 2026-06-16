@@ -15,33 +15,33 @@ def _token(user):
 
 class TestPedidoCRUD:
     def test_listar_pedidos_admin(self, client, admin_user, pedido_pendiente):
-        response = client.get("/pedidos/", cookies={"access_token": _token(admin_user)})
+        response = client.get("/api/v6/pedidos/", cookies={"access_token": _token(admin_user)})
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.json(), list)
 
     def test_listar_pedidos_client_ve_solo_propios(self, client, client_user, pedido_pendiente):
         pedido_pendiente.usuario_id = client_user.id
-        response = client.get("/pedidos/", cookies={"access_token": _token(client_user)})
+        response = client.get("/api/v6/pedidos/", cookies={"access_token": _token(client_user)})
         assert response.status_code == status.HTTP_200_OK
         for p in response.json():
             assert p["usuario_id"] == client_user.id
 
     def test_obtener_pedido_por_id(self, client, admin_user, pedido_pendiente):
         response = client.get(
-            f"/pedidos/{pedido_pendiente.id}",
+            f"/api/v6/pedidos/{pedido_pendiente.id}",
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["id"] == pedido_pendiente.id
 
     def test_obtener_pedido_inexistente(self, client, admin_user):
-        response = client.get("/pedidos/99999", cookies={"access_token": _token(admin_user)})
+        response = client.get("/api/v6/pedidos/99999", cookies={"access_token": _token(admin_user)})
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_crear_pedido_como_cliente(self, client, client_user, formas_pago):
         payload = {"forma_pago_codigo": "MERCADOPAGO", "items": []}
         response = client.post(
-            "/pedidos/", json=payload,
+            "/api/v6/pedidos/", json=payload,
             cookies={"access_token": _token(client_user)},
         )
         assert response.status_code == status.HTTP_201_CREATED
@@ -60,7 +60,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -75,7 +75,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "EN_PREP"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "EN_PREP"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -90,7 +90,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "EN_CAMINO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "EN_CAMINO"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -105,7 +105,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "ENTREGADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "ENTREGADO"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -120,7 +120,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "ENTREGADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "ENTREGADO"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -134,7 +134,7 @@ class TestPedidoFSM:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "CANCELADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "CANCELADO"},
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -150,7 +150,7 @@ class TestPedidoRBAC:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
             cookies={"access_token": _token(client_user)},
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -164,7 +164,7 @@ class TestPedidoRBAC:
         session.commit()
         session.refresh(pedido)
         response = client.put(
-            f"/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
+            f"/api/v6/pedidos/{pedido.id}", json={"estado_codigo": "CONFIRMADO"},
             cookies={"access_token": _token(pedidos_user)},
         )
         assert response.status_code == status.HTTP_200_OK
@@ -181,7 +181,7 @@ class TestPedidoCancelacion:
         session.commit()
         session.refresh(pedido)
         response = client.delete(
-            f"/pedidos/{pedido.id}",
+            f"/api/v6/pedidos/{pedido.id}",
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
@@ -195,7 +195,7 @@ class TestPedidoCancelacion:
         session.commit()
         session.refresh(pedido)
         response = client.delete(
-            f"/pedidos/{pedido.id}?motivo=Cliente+arrepentido",
+            f"/api/v6/pedidos/{pedido.id}?motivo=Cliente+arrepentido",
             cookies={"access_token": _token(admin_user)},
         )
         assert response.status_code == status.HTTP_204_NO_CONTENT
