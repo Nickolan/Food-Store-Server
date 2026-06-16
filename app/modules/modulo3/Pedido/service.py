@@ -94,6 +94,11 @@ class PedidoService:
         )
         uow.historiales.add(historial)
 
+        logger.info(
+            "AUDITORIA FSM: Pedido %s cambió de '%s' a '%s' | usuario_id=%s | motivo='%s'",
+            pedido.id, estado_anterior, nuevo_codigo, usuario_id, motivo,
+        )
+
     def validar_entidades(self,uow,data:Union[PedidoCreate,PedidoUpdate], userid: Optional[int] = None):
             # Validar usuario
             usuario_id = userid or getattr(data, "usuario_id", None) 
@@ -171,7 +176,7 @@ class PedidoService:
                         cantidad=item.cantidad,
                         subtotal_snap=subtotal,
                         nombre_snapshot=producto.nombre,
-                        precio_snapshot=producto.precio_base,
+                        precio_snapshot=Decimal(str(producto.precio_base)),
                         personalizacion=item.personalizacion 
                     )
                     detalles_finales.append(detalle)
@@ -188,7 +193,7 @@ class PedidoService:
                 links = uow.productos.get_all_ingrediente_links(detalle.producto_id)
                 for link in links:
                     ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
-                    ingrediente.stock_cantidad -= link.cantidad * detalle.cantidad
+                    ingrediente.stock_cantidad -= int(link.cantidad * detalle.cantidad)
                     uow.ingredientes.add(ingrediente)
             await self.avanzar_estado(uow=uow, pedido=nuevo_pedido, nuevo_codigo=nuevo_pedido.estado_codigo, usuario_id=nuevo_pedido.usuario_id, motivo="Creación del pedido", es_creacion=True)
             result = PedidoRead.model_validate(nuevo_pedido)
@@ -270,8 +275,6 @@ class PedidoService:
     async def _emit_ws_events(
         self, pedido_id: int, destino: str, result: PedidoRead
     ) -> None:
-        print("EMITIENDO EVENTOS WS PARA PEDIDO ID %s, DESTINO %s", pedido_id, destino)
-    
         from app.core.websocket import manager
 
         event_type = EVENTOS_WS.get(destino)
@@ -282,9 +285,11 @@ class PedidoService:
 
         await manager.broadcast_to_order(pedido_id, event_type, data)
 
-        print(f"Eventos WS emitidos para pedido {pedido_id} con destino {destino}")
         roles_a_notificar = ROLES_POR_TRANSICION.get(destino, [])
-        print(f"Roles a notificar para el evento {event_type}: {roles_a_notificar}")
+        logger.debug(
+            "Emitiendo WS: event=%s | pedido=%s | roles=%s",
+            event_type, pedido_id, roles_a_notificar,
+        )
         if roles_a_notificar:
             await manager.broadcast_to_roles(roles_a_notificar, event_type, data)
 

@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Dict, List
 
@@ -5,6 +6,8 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+
+logger = logging.getLogger("app.core.rate_limiter")
 
 AUTH_ENDPOINTS = {
     "/api/v6/auth/token",
@@ -34,7 +37,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             current_attempts = len(self.attempts.get(ip, []))
             if current_attempts >= self.max_attempts:
-                print(f"DEBUG: ip={ip} bloqueada por rate limit. Intentos={current_attempts}, max={self.max_attempts}")
+                logger.warning("Rate limit alcanzado. ip=%s, intentos=%s, max=%s", ip, current_attempts, self.max_attempts)
                 return JSONResponse(
                     status_code=429,
                     content={
@@ -52,12 +55,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 if ip not in self.attempts:
                     self.attempts[ip] = []
                 self.attempts[ip].append(time.time())
-                print(f"DEBUG: ip={ip}, intento fallido. Intentos actuales={len(self.attempts[ip])}")
+                logger.debug("Intento fallido. ip=%s, intentos_actuales=%s", ip, len(self.attempts[ip]))
 
             elif response.status_code in (200, 201):
                 if ip in self.attempts:
                     del self.attempts[ip]
-                    print(f"DEBUG: ip={ip}, login exitoso - contador reseteado")
+                    logger.debug("Login exitoso — contador reseteado. ip=%s", ip)
 
             return response
 

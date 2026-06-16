@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,7 +6,9 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import SQLModel
 from app.core.database import engine
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.rate_limiter import RateLimitMiddleware  
+from app.core.rate_limiter import RateLimitMiddleware
+
+logger = logging.getLogger("app.main")
 
 from app.modules.categoria.models import Categoria 
 from app.modules.producto.models import Producto, ProductoCategoriaLink
@@ -28,9 +31,15 @@ from app.core.config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Startup: crea todas las tablas registradas en SQLModel.metadata.
+    Startup: configura logging, crea tablas.
     Shutdown: espacio para cerrar conexiones, caches, etc.
     """
+    logging.basicConfig(
+        level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logger.info("Iniciando FoodStore API — LOG_LEVEL=%s", settings.LOG_LEVEL)
     SQLModel.metadata.create_all(engine)
     yield
 
@@ -51,9 +60,18 @@ app = FastAPI(
     lifespan=lifespan,
     redirect_slashes=False,
 )
-app.add_middleware(RateLimitMiddleware, max_attempts=5, window_seconds=900)
-
-print("CORS_ORIGINS:", settings.CORS_ORIGINS)
+logger.info("CORS_ORIGINS: %s", settings.CORS_ORIGINS)
+logger.info("FRONTEND_URL: %s", settings.FRONTEND_URL)
+logger.info(
+    "RateLimit: max_attempts=%s, window=%ss",
+    settings.RATE_LIMIT_MAX_ATTEMPTS,
+    settings.RATE_LIMIT_WINDOW_SECONDS,
+)
+app.add_middleware(
+    RateLimitMiddleware,
+    max_attempts=settings.RATE_LIMIT_MAX_ATTEMPTS,
+    window_seconds=settings.RATE_LIMIT_WINDOW_SECONDS,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -61,7 +79,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print("FRONTEND_URL:", settings.FRONTEND_URL)
 
 app.include_router(producto_router)
 app.include_router(categoria_router)

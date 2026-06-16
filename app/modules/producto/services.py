@@ -100,7 +100,7 @@ class ProductoService:
                     "nombre": ingrediente.nombre,
                     "stock_disponible": ingrediente.stock_cantidad,
                     "cantidad_requerida": float(ing_data.cantidad),
-                    "faltante": float(ing_data.cantidad - ingrediente.stock_cantidad),
+                    "faltante": float(ing_data.cantidad) - ingrediente.stock_cantidad,
                 })
 
         if faltantes:
@@ -129,7 +129,7 @@ class ProductoService:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Ingrediente con ID {link.ingrediente_id} no encontrado.")
-            fabricables=ingrediente.stock_cantidad // link.cantidad
+            fabricables=int(ingrediente.stock_cantidad) // int(link.cantidad)
             if minimo is None or fabricables < minimo:
                 minimo = fabricables
         return minimo if minimo is not None else 0

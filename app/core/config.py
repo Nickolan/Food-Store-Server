@@ -29,17 +29,23 @@ class Settings(BaseSettings):
     MP_ACCESS_TOKEN: str
     MP_WEBHOOK_URL: str = ""
 
-   # ─── Cloudinary ───────────────────────────────────────────────────────────
+    # ─── Cloudinary ───────────────────────────────────────────────────────────
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
-    
+
+    # ─── Logging ─────────────────────────────────────────────────────────────
+    LOG_LEVEL: str = "INFO"
+
+    # ─── Rate Limiting ───────────────────────────────────────────────────────
+    RATE_LIMIT_MAX_ATTEMPTS: int = 5
+    RATE_LIMIT_WINDOW_SECONDS: int = 900
+
     model_config = {
         "env_file":          ".env",
         "env_file_encoding": "utf-8",
         "extra":             "ignore",
     }
-    print("CORS_ORIGINS:", CORS_ORIGINS)
 
 
 
