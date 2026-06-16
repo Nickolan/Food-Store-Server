@@ -38,7 +38,7 @@ async def mp_webhook(request: Request, service: PagoService = Depends(get_servic
             pass
 
     if data_id:
-        service.procesar_webhook(data_id)
+        await service.procesar_webhook(data_id)
         
     return Response(status_code=200)
 
