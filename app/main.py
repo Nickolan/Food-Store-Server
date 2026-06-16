@@ -83,9 +83,28 @@ def ws_rooms():
     }
 
 
+from fastapi import Request
+from app.core.database import get_session
+from fastapi import Depends
+from sqlmodel import Session
+
 @app.get("/checkout/success")
-async def handle_success():
-  return RedirectResponse(url="http://localhost:5173/success")
+async def handle_success(request: Request, session: Session = Depends(get_session)):
+    collection_id = request.query_params.get("collection_id")
+    collection_status = request.query_params.get("collection_status")
+    
+    if collection_id and collection_status == "approved":
+        from app.modules.modulo3.Pago.unitOfWork import PagoUnitOfWork
+        from app.modules.modulo3.Pago.service import PagoService
+        
+        uow = PagoUnitOfWork(session)
+        service = PagoService(uow)
+        try:
+            await service.procesar_webhook(int(collection_id))
+        except Exception as e:
+            print("Error al procesar el webhook en el retorno sincrónico:", e)
+
+    return RedirectResponse(url="http://localhost:5173/success")
 @app.get("/checkout/failure")
 async def handle_failure():
   return RedirectResponse(url="http://localhost:5173/failure")

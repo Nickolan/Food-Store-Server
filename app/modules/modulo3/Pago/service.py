@@ -33,6 +33,9 @@ class PagoService:
 
             print(settings.MP_WEBHOOK_URL, settings.FRONTEND_URL)
             
+            # Usamos MP_WEBHOOK_URL como la base para el ngrok del backend.
+            # Asegúrate de que MP_WEBHOOK_URL sea tu URL de ngrok (ej: https://xxx.ngrok.dev)
+            base_url = settings.MP_WEBHOOK_URL.strip('/') if settings.MP_WEBHOOK_URL else settings.FRONTEND_URL.strip('/')
             preference_data = {
                 "items": [
                     {
@@ -43,11 +46,11 @@ class PagoService:
                     }
                 ],
                 "back_urls": {
-                    "success": f"{settings.FRONTEND_URL}/success?pedido={pedido.id}",
-                    "failure": f"{settings.FRONTEND_URL}/failure?pedido={pedido.id}",
-                    "pending": f"{settings.FRONTEND_URL}/pending?pedido={pedido.id}"
+                    "success": f"{base_url}/checkout/success?pedido={pedido.id}",
+                    "failure": f"{base_url}/checkout/failure?pedido={pedido.id}",
+                    "pending": f"{base_url}/checkout/success?pedido={pedido.id}"
                 },
-                "notification_url": settings.MP_WEBHOOK_URL,
+                "notification_url": f"{base_url}/api/v6/pagos/webhook",
                 "external_reference": external_reference,
                 "auto_return": "approved",
             }
@@ -76,7 +79,7 @@ class PagoService:
             
             return PagoRead.model_validate(nuevoPago)
             
-    def procesar_webhook(self, mp_payment_id: int):
+    async def procesar_webhook(self, mp_payment_id: int):
         sdk = mercadopago.SDK(settings.MP_ACCESS_TOKEN)
         payment_response = sdk.payment().get(mp_payment_id)
         
@@ -103,7 +106,7 @@ class PagoService:
                 pedido = uow.pedidos.get_by_id(pago.pedido_id)
                 if pedido and pedido.estado_codigo != "CONFIRMADO":
                     pedido_service = PedidoService(uow=None)
-                    pedido_service.avanzar_estado(
+                    await pedido_service.avanzar_estado(
                         uow=uow, 
                         pedido=pedido, 
                         nuevo_codigo="CONFIRMADO", 
