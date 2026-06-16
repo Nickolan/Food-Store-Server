@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime
 from typing import Generic, Optional, TypeVar, Type, Sequence
 from sqlmodel import Session, SQLModel, select
+
+logger = logging.getLogger("app.core.repository")
 
 ModelT = TypeVar("ModelT", bound=SQLModel)
 
@@ -23,7 +26,7 @@ class BaseRepository(Generic[ModelT]):
         ).all()
 
     def add(self, instance: ModelT) -> ModelT:
-        print("Ejecutando Add")
+        logger.debug("Ejecutando Add: %s", type(instance).__name__)
         self.session.add(instance)
         self.session.flush()  # obtiene el ID sin hacer commit
         self.session.refresh(instance)

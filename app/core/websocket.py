@@ -83,7 +83,7 @@ class ConnectionManager:
 
     async def broadcast_to_order(self, order_id: int, event_type: str, data: dict[str, Any]) -> None:
         room = f"order:{order_id}"
-        print(f"Emitiendo evento {event_type} a room {room} con data: {data}")
+        logger.debug("Emitiendo a room %s: event=%s", room, event_type)
         await self._emit_to_room(room, event_type, data)
 
     async def broadcast_to_roles(
@@ -95,7 +95,7 @@ class ConnectionManager:
 
         for role in roles:
             room = f"role:{role.lower()}"
-            print(f"Emitiendo evento {event_type} a room {room} con data: {data}")
+            logger.debug("broadcast_to_roles: event=%s, room=%s", event_type, room)
             if room not in self.rooms:
                 continue
             for connection in list(self.rooms[room]):
@@ -152,7 +152,6 @@ class ConnectionManager:
         self.socket_rooms[websocket].add(room)
 
     async def _emit_to_room(self, room: str, event_type: str, data: dict[str, Any]) -> None:
-        print("DEBUG: Emitiendo evento WebSocket", {"room": room, "event_type": event_type, "data": data})
         if room not in self.rooms:
             logger.info(f"Evento {event_type} descartado (room {room} vacía).")
             return

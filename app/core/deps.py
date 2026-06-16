@@ -12,11 +12,14 @@ Capa: Core (dependencias transversales)
 Conoce a: UoW, Security, Model
 """
 
+import logging
 from typing import Annotated, List
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session
+
+logger = logging.getLogger("app.core.deps")
 
 from app.core.security import decode_access_token
 from app.core.unit_of_work import UnitOfWork
@@ -28,8 +31,7 @@ from app.core.database import get_session
 class OAuth2PasswordBearerWithCookie(OAuth2PasswordBearer):
     async def __call__(self, request: Request) -> str | None:
         token = request.cookies.get("access_token")
-        
-        print(f"DEBUG: Token extraído de la cookie: {token}")
+        logger.debug("Token extraído de cookie: presente=%s", token is not None)
         if not token:
             if self.auto_error:
                 raise HTTPException(
@@ -76,8 +78,8 @@ async def get_current_user(
 async def get_current_active_user(
     current_user: Annotated[Usuario, Depends(get_current_user)],
 ) -> Usuario:
-    print("DEBUG: Verificando si el usuario está activo (no desactivado)")
     """Verifica que el usuario autenticado no esté desactivado."""
+    logger.debug("Verificando usuario activo: id=%s", current_user.id)
     if current_user.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

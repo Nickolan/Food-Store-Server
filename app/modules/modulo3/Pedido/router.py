@@ -1,7 +1,10 @@
 import json
+import logging
 from typing import List, Annotated
 
-from sqlmodel import Session   
+from sqlmodel import Session
+
+logger = logging.getLogger("app.modules.pedido.router")
 
 from app.core.security import decode_access_token
 from app.modules.usuario.unit_of_work import UsuarioUnitOfWork
@@ -94,9 +97,8 @@ async def cancelar_pedido(id: Annotated[int, Path(gt=0, title="ID del pedido", d
 async def websocket_endpoint(
     websocket: WebSocket,
 ):
-    print("ACCEDIENDO A LA RUTA DE WEBSOCKET DE PEDIDOS")
+    logger.debug("WebSocket connect: verificando token")
     token = websocket.cookies.get("access_token")
-    print(f"Token recibido en WebSocket: {token}")
 
     if not token:
         await websocket.accept()
@@ -108,16 +110,12 @@ async def websocket_endpoint(
         await websocket.accept()
         await websocket.close(code=1008, reason="Token inválido o expirado")
         return
-    
-    print(f"Payload decodificado del token: {payload}")
 
     username = payload.get("sub")
     if not username:
         await websocket.accept()
         await websocket.close(code=1008, reason="Token inválido")
         return
-    
-    print(f"Username extraído del token: {username}")
 
     with Session(engine) as db_session:
         with UsuarioUnitOfWork(db_session) as uow:
@@ -126,17 +124,18 @@ async def websocket_endpoint(
                 await websocket.accept()
                 await websocket.close(code=1008, reason="Usuario inválido o inactivo")
                 return
-            
-            print(f"Usuario autenticado en WebSocket: {user.email} con roles {[rol.codigo for rol in user.roles]}")
+
+            logger.info(
+                "WebSocket auth: user=%s roles=%s", user.email,
+                [rol.codigo for rol in user.roles],
+            )
             user_roles = [rol.codigo.lower() for rol in user.roles]
-            
             user_roles_upper = [r.upper() for r in user_roles]
 
-            # Determinar rol primario para la room: ADMIN > PEDIDOS > CLIENT > primero disponible
             if "ADMIN" in user_roles_upper:
                 user_role = "admin"
             elif "PEDIDOS" in user_roles_upper:
-                user_role = "pedidos" 
+                user_role = "pedidos"
             elif "CLIENT" in user_roles_upper:
                 user_role = "client"
             else:
@@ -147,29 +146,25 @@ async def websocket_endpoint(
     from app.core.websocket import manager
     await manager.connect(websocket, role=user_role, user_id=user_id)
 
-    # Si el usuario tiene múltiples roles, lo unimos a todas sus rooms de rol
-    # (connect() ya lo une al rol primario; esto cubre el caso multi-rol)
     for role_upper in user_roles_upper:
         role_lower = role_upper.lower()
         room_name = f"role:{role_lower}"
         if room_name not in manager.socket_rooms.get(websocket, set()):
             manager._join_room(websocket, room_name)
 
-    print(f"WebSocket conectado y listo para recibir mensajes: {username} con roles {user_roles_upper}")
+    logger.info("WebSocket conectado: user=%s roles=%s", username, user_roles_upper)
     try:
         while True:
-            print("ES EL BUCLE DE ESCUCHA DEL WEBSOCKET")
             raw = await websocket.receive_text()
-            print(raw)
+            logger.debug("WS raw message: %s", raw[:200])
 
             try:
                 msg = json.loads(raw)
-                print(f"Mensaje JSON parseado correctamente: {msg}")
             except json.JSONDecodeError:
                 continue
 
             action = msg.get("action")
-            print(f"Mensaje recibido en WebSocket: {msg} del usuario {username} con roles {user_roles_upper}")
+            logger.debug("WS action=%s | user=%s", action, username)
 
             if action == "subscribe-order":
                 order_id = msg.get("order_id")
@@ -203,8 +198,8 @@ async def websocket_endpoint(
                     manager.leave_order_room(websocket, order_id)
 
     except WebSocketDisconnect:
-        print(f"WebSocket desconectado: {username}")
+        logger.info("WebSocket desconectado: user=%s", username)
         manager.disconnect(websocket)
     except Exception:
-        print(f"Error en WebSocket: {username}")
+        logger.warning("Error en WebSocket: user=%s", username)
         manager.disconnect(websocket)
