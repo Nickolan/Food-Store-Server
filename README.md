@@ -70,7 +70,6 @@ El motor transaccional del negocio.
 | **Framework Web** | [FastAPI](https://fastapi.tiangolo.com/) | Alto rendimiento, tipado estático, validación nativa y documentación Swagger autogenerada. |
 | **ORM & Validaciones** | [SQLModel](https://sqlmodel.tiangolo.com/) | Fusión perfecta entre SQLAlchemy 2.0 y Pydantic. |
 | **Base de Datos** | PostgreSQL | Soporte para tipos de datos complejos como `ARRAY`. |
-| **Migraciones** | Alembic | Versionado del esquema de base de datos. |
 | **Testing** | `pytest` + `pytest-asyncio` | Suite de pruebas asíncronas para validación de servicios y repositorios. |
 | **Seguridad** | `passlib` + `python-jose` | Gestión robusta de JWT y hashing seguro de credenciales. |
 | **Imágenes** | Cloudinary | Subida y gestión de imágenes de productos. |
@@ -230,11 +229,8 @@ Si ves la interfaz de Swagger, el setup está completo. 🎉
 - El prompt debe mostrar `(.venv)` al inicio.
 
 ### `SECRET_KEY field required` u otros campos requeridos
-- El archivo `.env` debe estar en la raíz del directorio `Server/`, al mismo nivel que `alembic.ini` y `requirements.txt`.
+- El archivo `.env` debe estar en la raíz del directorio `Server/`, al mismo nivel que `requirements.txt`.
 - Verificá que no haya espacios alrededor del `=` en las variables (correcto: `SECRET_KEY=valor`, incorrecto: `SECRET_KEY = valor`).
-
-### `alembic: command not found`
-- Probá `python -m alembic upgrade head` (Alembic se instala dentro del venv, no globalmente).
 
 ### Error de CORS al conectar el frontend
 - Asegurate de que la URL de tu frontend esté incluida en `CORS_ORIGINS` del `.env`.
@@ -245,7 +241,7 @@ Si ves la interfaz de Swagger, el setup está completo. 🎉
 ## 🧪 Correr los tests
 
 ```bash
-pytest
+pytest -v
 
 pytest -v -k "rate_limit" # Para test de limite de uso
 ```
