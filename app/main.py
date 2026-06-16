@@ -40,6 +40,7 @@ async def lifespan(app: FastAPI):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     logger.info("Iniciando FoodStore API — LOG_LEVEL=%s", settings.LOG_LEVEL)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     SQLModel.metadata.create_all(engine)
     yield
 
