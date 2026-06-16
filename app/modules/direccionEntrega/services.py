@@ -41,7 +41,7 @@ class DireccionService:
                 primera.es_principal = True
             else:
                 primera.es_principal = True
-                uow.direcciones.update(primera)
+                uow.direcciones.add(primera)
 
     # Casos de uso
     def crear(self, usuario_id: int, data: DireccionCreate) -> DireccionRead:
