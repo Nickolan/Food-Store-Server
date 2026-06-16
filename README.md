@@ -170,7 +170,7 @@ FRONTEND_URL=http://localhost:5173
 # ─── Mercado Pago ─────────────────────────────────────────────────────────────
 # Credenciales de prueba: https://www.mercadopago.com.ar/developers/panel/app
 MP_ACCESS_TOKEN=TEST-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-MP_NOTIFICATION_URL=https://tu-dominio-ngrok.ngrok-free.app/api/v6/pagos/webhook
+MP_WEBHOOK_URL=https://tu-dominio-ngrok.ngrok-free.dev
 
 # ─── Cloudinary ───────────────────────────────────────────────────────────────
 # Credenciales: https://cloudinary.com/console
