@@ -245,7 +245,7 @@ Si ves la interfaz de Swagger, el setup está completo. 🎉
 ## 🧪 Correr los tests
 
 ```bash
-pytest
+pytest -v
 
 pytest -v -k "rate_limit" # Para test de limite de uso
 ```
