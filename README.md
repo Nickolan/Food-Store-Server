@@ -176,6 +176,13 @@ MP_WEBHOOK_URL=https://tu-dominio-ngrok.ngrok-free.dev
 CLOUDINARY_CLOUD_NAME=tu-cloud-name
 CLOUDINARY_API_KEY=tu-api-key
 CLOUDINARY_API_SECRET=tu-api-secret
+
+# ─── Logging y Rate Limiting ───────────────────────────────────────────────────────────────
+LOG_LEVEL=INFO
+
+RATE_LIMIT_MAX_ATTEMPTS=5
+RATE_LIMIT_WINDOW_SECONDS=900
+
 ```
 
 > **Nota:** Si solo querés levantar el servidor localmente sin pagos ni imágenes, podés poner valores ficticios para `MP_*` y `CLOUDINARY_*` (ej. `TEST-xxx` y `dummy`). La API arranca igual, solo fallarán los endpoints de pago y subida de imágenes.
