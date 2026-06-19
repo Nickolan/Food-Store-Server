@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from app.core.repository import BaseRepository
@@ -19,15 +20,22 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
             .options(selectinload(Ingrediente.unidad_medida))
         ).first()
 
-    def get_paginado(self, offset: int = 0, limit: int = 20) -> list[Ingrediente]:
-        return list(
-            self.session.exec(
-                select(Ingrediente)
-                .options(selectinload(Ingrediente.unidad_medida))
-                .offset(offset)
-                .limit(limit)
-            ).all()
-        )
+    def get_paginado(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        nombre: Optional[str] = None,
+        activo: Optional[bool] = None,
+        es_alergeno: Optional[bool] = None,
+    ) -> list[Ingrediente]:
+        stmt = select(Ingrediente).options(selectinload(Ingrediente.unidad_medida))
+        if nombre:
+            stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
+        if activo is not None:
+            stmt = stmt.where(Ingrediente.activo == activo)
+        if es_alergeno is not None:
+            stmt = stmt.where(Ingrediente.es_alergeno == es_alergeno)
+        return list(self.session.exec(stmt.offset(offset).limit(limit)).all())
     
     def get_with_productos(self, ingrediente_id: int) -> Ingrediente | None:
         return self.session.exec(
@@ -39,8 +47,20 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
             )
         ).first()
     
-    def count(self) -> int:
-        return len(self.session.exec(select(Ingrediente)).all())
+    def count(
+        self,
+        nombre: Optional[str] = None,
+        activo: Optional[bool] = None,
+        es_alergeno: Optional[bool] = None,
+    ) -> int:
+        stmt = select(Ingrediente)
+        if nombre:
+            stmt = stmt.where(Ingrediente.nombre.ilike(f"%{nombre}%"))
+        if activo is not None:
+            stmt = stmt.where(Ingrediente.activo == activo)
+        if es_alergeno is not None:
+            stmt = stmt.where(Ingrediente.es_alergeno == es_alergeno)
+        return len(self.session.exec(stmt).all())
     
     def get_link(self, ingrediente_id: int, producto_id: int) -> IngredienteProductoLink | None:
         return self.session.exec(

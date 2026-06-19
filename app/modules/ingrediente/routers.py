@@ -27,12 +27,17 @@ def crear_ingrediente(
 def listar_ingredientes(
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
-    # nombre: Optional[str] = None,
+    nombre: Optional[str] = None,
+    activo: Optional[bool] = None,
+    es_alergeno: Optional[bool] = None,
     svc: IngredienteService = Depends(get_ingrediente_service)
 ):
     return svc.listar(
         offset=offset,
-        limit=limit
+        limit=limit,
+        nombre=nombre,
+        activo=activo,
+        es_alergeno=es_alergeno,
     )
 
 @router.get("/{id}", response_model=IngredienteReadFull, status_code=status.HTTP_200_OK)

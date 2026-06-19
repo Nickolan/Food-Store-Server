@@ -148,13 +148,20 @@ class IngredienteService:
 
 
 
-    def listar(self, offset: int = 0, limit: int = 20) -> IngredientePaginadoResponse:
+    def listar(
+        self,
+        offset: int = 0,
+        limit: int = 20,
+        nombre: Optional[str] = None,
+        activo: Optional[bool] = None,
+        es_alergeno: Optional[bool] = None,
+    ) -> IngredientePaginadoResponse:
 
         with IngredienteUnitOfWork(self._session) as uow:
 
-            ingredientes = uow.ingredientes.get_paginado(offset, limit)
+            ingredientes = uow.ingredientes.get_paginado(offset, limit, nombre, activo, es_alergeno)
 
-            total = uow.ingredientes.count()
+            total = uow.ingredientes.count(nombre, activo, es_alergeno)
 
             items = [IngredienteRead.model_validate(ing) for ing in ingredientes]
 
