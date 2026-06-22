@@ -10,7 +10,8 @@ from .schemas import (
     ProductoRead, ProductoCreate, ProductoUpdate, 
     ProductoPaginadoResponse, ProductoReadFull, 
     CategoriaWithPrincipal, IngredienteWithProductoInfo,
-    ProductoIngredienteAssign, ProductoIngredienteCreate
+    ProductoIngredienteAssign, ProductoIngredienteCreate, ProductoMargenResponse,
+    ProductoAlertaItem, ProductoAlertasResponse
 )
 from app.modules.categoria.models import Categoria
 from app.modules.ingrediente.models import Ingrediente
@@ -129,11 +130,45 @@ class ProductoService:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Ingrediente con ID {link.ingrediente_id} no encontrado.")
-            fabricables=int(ingrediente.stock_cantidad) // int(link.cantidad)
+            fabricables=int(float(ingrediente.stock_cantidad) / float(link.cantidad))
             if minimo is None or fabricables < minimo:
                 minimo = fabricables
         return minimo if minimo is not None else 0
    
+    def calcular_margen(self, producto_id: int) -> ProductoMargenResponse:
+        """
+        Calcula el margen de ganancia de un producto en base al costo
+        de sus ingredientes: costo_total = Σ (precio_ingrediente * cantidad).
+        """
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+
+            links = uow.productos.get_all_ingrediente_links(producto_id)
+
+            costo_total = 0.0
+            for link in links:
+                ingrediente = uow.ingredientes.get_by_id(link.ingrediente_id)
+                if not ingrediente:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Ingrediente con ID {link.ingrediente_id} no encontrado."
+                    )
+                costo_total += ingrediente.precio * float(link.cantidad)
+
+            margen_absoluto = producto.precio_base - costo_total
+            margen_porcentual = (
+                (margen_absoluto / producto.precio_base) * 100
+                if producto.precio_base > 0 else None
+            )
+
+            result = ProductoMargenResponse(
+                producto_id=producto.id,
+                precio_venta=producto.precio_base,
+                costo_total=round(costo_total, 2),
+                margen_absoluto=round(margen_absoluto, 2),
+                margen_porcentual=round(margen_porcentual, 2) if margen_porcentual is not None else None,
+            )
+        return result
     # Casos de uso
 
     def crear(self, data: ProductoCreate) -> ProductoRead:
@@ -187,7 +222,7 @@ class ProductoService:
             )
         return result
     
-    def obtener_por_id(self, producto_id: int) -> ProductoReadFull:
+    def obtener_por_id(self, producto_id: int, calcular_alerta: bool = False) -> ProductoReadFull:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_full_or_404(uow, producto_id)
 
@@ -211,6 +246,17 @@ class ProductoService:
                 ))
 
             print("Producto: ", producto)
+
+            # Calcular alerta de precio solo si el usuario tiene permisos de admin/stock
+            tiene_alerta_precio = None
+            if calcular_alerta and producto.updated_at and producto.ingredientes:
+                for ing in producto.ingredientes:
+                    if ing.updated_at and ing.updated_at > producto.updated_at:
+                        tiene_alerta_precio = True
+                        break
+                if tiene_alerta_precio is None:
+                    tiene_alerta_precio = False
+
             unidad_medida = None
             if producto.unidad_venta_id:
                 print("Obteniendo unidad de medida para ID: ", producto.unidad_venta_id)
@@ -220,10 +266,15 @@ class ProductoService:
             stock_fabricable = self.calcular_stock_por_ingredientes(uow, producto_id)
             stock_efectivo = stock_fabricable if stock_fabricable is not None else producto.stock
             producto_dict = producto.model_dump()
-            producto_dict.pop('stock', None) 
+            # Sacamos los campos que pasamos explícitamente para evitar TypeError por duplicados
+            producto_dict.pop('stock', None)
+            producto_dict.pop('categorias', None)
+            producto_dict.pop('ingredientes', None)
+            producto_dict.pop('unidad_medida', None)
             result = ProductoReadFull(
                 **producto_dict,
                 stock=stock_efectivo,
+                tiene_alerta_precio=tiene_alerta_precio,
                 unidad_medida=unidad_medida.model_dump() if unidad_medida else None,
                 ingredientes=response_ingredientes,
                 categorias=response_categorias
@@ -342,6 +393,7 @@ class ProductoService:
                     self._get_categoria_or_404(uow, cat_id) 
                     uow.productos.link_categoria(producto_id, cat_id, es_principal=False)
 
+            producto.updated_at = datetime.now(timezone.utc)
             uow.productos.add(producto)
             result = ProductoRead.model_validate(producto)
         return result
@@ -364,3 +416,57 @@ class ProductoService:
             items=result,
             total=len(result)
         )
+
+    def obtener_alertas(self) -> ProductoAlertasResponse:
+        """
+        Retorna alertas livianas para todos los productos activos:
+        - 'precio_ingrediente_actualizado': algún ingrediente cambió su precio después del producto
+        - 'margen_bajo': el margen de ganancia está por debajo del 10%
+        """
+        alertas: list[ProductoAlertaItem] = []
+        with ProductoUnitOfWork(self._session) as uow:
+            # Traemos TODOS los productos activos con sus ingredientes e links
+            # (usando el método paginado con offset=0, limit grande para obtener todos)
+            productos = uow.productos.get_paginado(offset=0, limit=10000, activo=True)
+
+            for prod in productos:
+                # Cargar links de ingredientes para este producto
+                links = uow.productos.get_all_ingrediente_links(prod.id)
+                if not links:
+                    continue
+
+                # 1) Verificar alerta por cambio de precio en ingredientes
+                tiene_alerta_precio = False
+                if prod.updated_at:
+                    for link in links:
+                        ing = uow.ingredientes.get_by_id(link.ingrediente_id)
+                        if ing and ing.updated_at and ing.updated_at > prod.updated_at:
+                            tiene_alerta_precio = True
+                            alertas.append(ProductoAlertaItem(
+                                producto_id=prod.id,
+                                nombre=prod.nombre,
+                                tipo_alerta="precio_ingrediente_actualizado",
+                                mensaje=f"Un ingrediente cambió su precio — revisá el margen",
+                            ))
+                            break
+
+                # 2) Calcular margen y verificar si está bajo
+                costo_total = 0.0
+                for link in links:
+                    ing = uow.ingredientes.get_by_id(link.ingrediente_id)
+                    if ing:
+                        costo_total += ing.precio * float(link.cantidad)
+
+                margen_absoluto = prod.precio_base - costo_total
+                margen_porcentual = (margen_absoluto / prod.precio_base * 100) if prod.precio_base > 0 else None
+
+                if margen_porcentual is not None and margen_porcentual < 10:
+                    alertas.append(ProductoAlertaItem(
+                        producto_id=prod.id,
+                        nombre=prod.nombre,
+                        tipo_alerta="margen_bajo",
+                        mensaje=f"Margen de {margen_porcentual:.1f}% — está por debajo del 10% recomendado",
+                        margen_porcentual=round(margen_porcentual, 2),
+                    ))
+
+        return ProductoAlertasResponse(total=len(alertas), items=alertas)

@@ -127,3 +127,23 @@ def require_roles(allowed_roles: List[str]):
         return current_user
 
     return role_checker
+
+
+async def es_admin_o_stock(request: Request) -> bool:
+    """
+    Verifica si el token JWT en la request contiene roles ADMIN o STOCK.
+    NO lanza excepción — retorna False si no hay token o no tiene permisos.
+    Útil para endpoints públicos que cambian comportamiento según el rol.
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        return False
+    payload = decode_access_token(token)
+    if not payload:
+        return False
+    user_roles = payload.get("roles", [])
+    return "ADMIN" in user_roles or "STOCK" in user_roles
