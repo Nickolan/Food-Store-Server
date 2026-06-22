@@ -379,6 +379,9 @@ class ProductoService:
             for field, value in update_data.items():
                 setattr(producto, field, value)
 
+            if "precio_base" in update_data:
+                producto.alerta_ingrediente_modificado = False
+
             if data.ingredientes is not None:
                 for link in uow.productos.get_all_ingrediente_links(producto_id):
                     uow.productos.unlink_ingrediente(producto_id, link.ingrediente_id)
@@ -398,6 +401,14 @@ class ProductoService:
             result = ProductoRead.model_validate(producto)
         return result
     
+    def descartar_alerta(self, producto_id: int) -> ProductoRead:
+        with ProductoUnitOfWork(self._session) as uow:
+            producto = self._get_or_404(uow, producto_id)
+            producto.alerta_ingrediente_modificado = False
+            uow.productos.add(producto)
+            result = ProductoRead.model_validate(producto)
+        return result
+
     def reactivar(self, producto_id: int) -> Optional[Producto]:
         with ProductoUnitOfWork(self._session) as uow:
             producto = self._get_or_404(uow, producto_id)

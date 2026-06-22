@@ -213,6 +213,20 @@ def obtener_producto_por_categoria(
     return producto
 
 
+@router.post(
+    "/{id}/descartar-alerta",
+    response_model=ProductoRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+def descartar_alerta_ingrediente(
+    id: int = Path(..., gt=0),
+    svc: ProductoService = Depends(get_producto_service),
+):
+    """Descarta manualmente la alerta de ingrediente modificado del producto."""
+    return svc.descartar_alerta(id)
+
+
 @router.get(
     "/{id}/margen",
     response_model=ProductoMargenResponse,

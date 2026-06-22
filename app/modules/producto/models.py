@@ -60,6 +60,7 @@ class Producto(SQLModel, table=True):
     imagenes_url: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     activo: bool = Field(default=True, nullable=False)
     disponible: bool = Field(default=True)
+    alerta_ingrediente_modificado: bool = Field(default=False, nullable=False)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)

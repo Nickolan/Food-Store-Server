@@ -42,6 +42,7 @@ class ProductoUpdate(SQLModel):
 class ProductoRead(ProductoBase):
     id: int
     activo: bool
+    alerta_ingrediente_modificado: bool = False
     unidad_medida: Optional[UnidadMedidaRead] = None
 
 class CategoriaBasicRead(SQLModel):

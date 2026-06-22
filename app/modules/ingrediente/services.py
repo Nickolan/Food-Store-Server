@@ -242,6 +242,18 @@ class IngredienteService:
 
             uow.ingredientes.add(ingrediente)
 
+            # Si cambió el precio, alertar a todos los productos que usan este ingrediente
+            if "precio" in update_data:
+                stmt = select(IngredienteProductoLink).where(
+                    IngredienteProductoLink.ingrediente_id == ingrediente_id
+                )
+                links = uow.ingredientes.session.exec(stmt).all()
+                for link in links:
+                    producto = uow.productos.get_by_id(link.producto_id)
+                    if producto:
+                        producto.alerta_ingrediente_modificado = True
+                        uow.ingredientes.session.add(producto)
+
             result = IngredienteRead.model_validate(ingrediente)
 
             return result
