@@ -42,6 +42,7 @@ class ProductoUpdate(SQLModel):
 class ProductoRead(ProductoBase):
     id: int
     activo: bool
+    alerta_ingrediente_modificado: bool = False
     unidad_medida: Optional[UnidadMedidaRead] = None
 
 class CategoriaBasicRead(SQLModel):
@@ -65,14 +66,35 @@ class IngredienteWithProductoInfo(SQLModel):
 class ProductoReadFull(ProductoRead):
     """Producto con sus categorías e ingredientes anidados."""
     stock: int = 0
+    tiene_alerta_precio: Optional[bool] = None
     categorias: List[CategoriaWithPrincipal] = []
     ingredientes: List[IngredienteWithProductoInfo] = []
+
+# ─── Alertas ────────────────────────────────────────────────────────────────
+class ProductoAlertaItem(SQLModel):
+    producto_id: int
+    nombre: str
+    tipo_alerta: str  # "margen_bajo" | "precio_ingrediente_actualizado"
+    mensaje: str
+    margen_porcentual: float | None = None
+
+class ProductoAlertasResponse(SQLModel):
+    total: int
+    items: List[ProductoAlertaItem]
 
 class ProductoStockResponse(SQLModel):
     stock: int
     bajo_stock_minimo: bool
     activo: bool
     disponible: bool
+    
+class ProductoMargenResponse(SQLModel):
+    producto_id: int
+    precio_venta: float
+    costo_total: float
+    margen_absoluto: float
+    margen_porcentual: float | None = None
+
 
 # ─── Operaciones N:M ──────────────────────────────────────────────────────
 class ProductoCategoriaAssign(SQLModel):

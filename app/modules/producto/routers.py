@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlmodel import Session
 from app.core.cloudinary import subir_imagen
 from app.core.database import get_session
-from app.core.deps import require_roles
+from app.core.deps import require_roles, es_admin_o_stock
 from app.modules.producto.schemas import (
     ProductoCategoriaAssign, 
     ProductoRead, 
@@ -12,7 +12,9 @@ from app.modules.producto.schemas import (
     ProductoUpdate, 
     ProductoPaginadoResponse, 
     ProductoReadFull,
-    ProductoIngredienteAssign
+    ProductoMargenResponse,
+    ProductoIngredienteAssign,
+    ProductoAlertasResponse
 ) 
 
 from app.modules.producto.services import ProductoService
@@ -51,9 +53,26 @@ def listar_productos(
     )
 
 
+
+
+@router.get(
+    "/alertas",
+    response_model=ProductoAlertasResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+def listar_alertas(svc: ProductoService = Depends(get_producto_service)):
+    """Retorna alertas livianas: productos con margen bajo o precio de ingrediente actualizado."""
+    return svc.obtener_alertas()
+
+
 @router.get("/{id}", response_model=ProductoReadFull, status_code=status.HTTP_200_OK)
-def detalle_producto(id: int = Path(..., gt=0), svc: ProductoService = Depends(get_producto_service)):
-    producto = svc.obtener_por_id(id)
+def detalle_producto(
+    id: int = Path(..., gt=0),
+    svc: ProductoService = Depends(get_producto_service),
+    es_admin: bool = Depends(es_admin_o_stock),
+):
+    producto = svc.obtener_por_id(id, calcular_alerta=es_admin)
     return producto
 
 @router.put(
@@ -192,3 +211,30 @@ def obtener_producto_por_categoria(
     print(f"Obteniendo productos por categoría con ID: {id}")
     producto = svc.obtener_producto_por_categoria(categoria_id=id)
     return producto
+
+
+@router.post(
+    "/{id}/descartar-alerta",
+    response_model=ProductoRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+def descartar_alerta_ingrediente(
+    id: int = Path(..., gt=0),
+    svc: ProductoService = Depends(get_producto_service),
+):
+    """Descarta manualmente la alerta de ingrediente modificado del producto."""
+    return svc.descartar_alerta(id)
+
+
+@router.get(
+    "/{id}/margen",
+    response_model=ProductoMargenResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_roles(["ADMIN", "STOCK"]))],
+)
+def obtener_margen(id: int = Path(..., gt=0), svc: ProductoService = Depends(get_producto_service)):
+    """Calcula el margen de ganancia del producto según el costo de sus ingredientes."""
+    return svc.calcular_margen(id)
+
+
