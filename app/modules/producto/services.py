@@ -476,7 +476,7 @@ class ProductoService:
                         producto_id=prod.id,
                         nombre=prod.nombre,
                         tipo_alerta="margen_bajo",
-                        mensaje=f"Margen de {margen_porcentual:.1f}% — está por debajo del 10% recomendado",
+                        mensaje=f"Margen de {margen_porcentual:.1f}% — está por debajo del recomendado",
                         margen_porcentual=round(margen_porcentual, 2),
                     ))
 

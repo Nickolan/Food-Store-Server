@@ -30,12 +30,18 @@ def listar_categorias(
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
     nombre: Optional[str] = None,
+    activo: Optional[bool] = None,
+    parent_id: Optional[int] = None,
+    solo_raiz: bool = Query(False),
     svs: CategoriaService = Depends(get_categoria_service)
 ):
     return svs.obtener_todas(
         offset=offset,
         limit=limit,
-        nombre=nombre
+        nombre=nombre,
+        activo=activo,
+        parent_id=parent_id,
+        solo_raiz=solo_raiz,
     )
     
 

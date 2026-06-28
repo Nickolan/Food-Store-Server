@@ -96,10 +96,10 @@ class UsuarioService:
             result = UsuarioRead.model_validate(nuevo)
         return result
 
-    def obtener_todos(self, offset: int = 0, limit: int = 20) -> UsuarioPaginadoResponse:
+    def obtener_todos(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None, disabled: Optional[bool] = None) -> UsuarioPaginadoResponse:
         with UsuarioUnitOfWork(self._session) as uow:
-            usuarios = uow.usuarios.get_todos(offset=offset, limit=limit)
-            total = uow.usuarios.count_todos()
+            usuarios = uow.usuarios.get_todos(offset=offset, limit=limit, nombre=nombre, disabled=disabled)
+            total = uow.usuarios.count_todos(nombre=nombre, disabled=disabled)
             items = [UsuarioRead.model_validate(u) for u in usuarios]
         return UsuarioPaginadoResponse(total=total, items=items)
 

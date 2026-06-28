@@ -154,9 +154,11 @@ def remover_rol_de_usuario(
 def listar_usuarios(
     offset: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    nombre: Optional[str] = Query(None),
+    disabled: Optional[bool] = Query(None),
     svs: UsuarioService = Depends(get_usuario_service),
 ):
-    return svs.obtener_todos(offset=offset, limit=limit)
+    return svs.obtener_todos(offset=offset, limit=limit, nombre=nombre, disabled=disabled)
 
 
 @router.get(

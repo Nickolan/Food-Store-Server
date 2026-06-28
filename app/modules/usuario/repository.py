@@ -30,13 +30,34 @@ class UsuarioRepository(BaseRepository[Usuario]):
             ).all()
         )
 
-    def get_todos(self, offset: int = 0, limit: int = 20) -> list[Usuario]:
+    def get_todos(self, offset: int = 0, limit: int = 20, nombre: Optional[str] = None, disabled: Optional[bool] = None) -> list[Usuario]:
         """Retorna todos los usuarios (activos e inactivos) para el panel de admin."""
-        stmt = select(Usuario).offset(offset).limit(limit)
-        return list(self.session.exec(stmt).all())
+        stmt = select(Usuario)
+        if nombre:
+            stmt = stmt.where(
+                (Usuario.nombre.ilike(f"%{nombre}%")) |
+                (Usuario.apellido.ilike(f"%{nombre}%")) |
+                (Usuario.email.ilike(f"%{nombre}%"))
+            )
+        if disabled is True:
+            stmt = stmt.where(Usuario.deleted_at != None)
+        elif disabled is False:
+            stmt = stmt.where(Usuario.deleted_at == None)
+        return list(self.session.exec(stmt.offset(offset).limit(limit)).all())
 
-    def count_todos(self) -> int:
-        return len(self.session.exec(select(Usuario)).all())
+    def count_todos(self, nombre: Optional[str] = None, disabled: Optional[bool] = None) -> int:
+        stmt = select(Usuario)
+        if nombre:
+            stmt = stmt.where(
+                (Usuario.nombre.ilike(f"%{nombre}%")) |
+                (Usuario.apellido.ilike(f"%{nombre}%")) |
+                (Usuario.email.ilike(f"%{nombre}%"))
+            )
+        if disabled is True:
+            stmt = stmt.where(Usuario.deleted_at != None)
+        elif disabled is False:
+            stmt = stmt.where(Usuario.deleted_at == None)
+        return len(self.session.exec(stmt).all())
 
 
 class RolRepository(BaseRepository[Rol]):
