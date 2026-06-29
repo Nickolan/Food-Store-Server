@@ -36,8 +36,8 @@ def run_seed_test_pago():
                 prod_id = conn.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM producto")).scalar()
                 # NO incluye unidad_venta_id para evitar el error
                 conn.execute(text("""
-                    INSERT INTO producto (id, nombre, descripcion, precio_base, stock, stock_minimo, activo, disponible, created_at, updated_at) 
-                    VALUES (:id, 'Hamb MP', 'Hamb', 1500.00, 100, 10, true, true, NOW(), NOW())
+                    INSERT INTO producto (id, nombre, descripcion, precio_base, stock, stock_minimo, imagenes_url, activo, disponible, created_at, updated_at) 
+                    VALUES (:id, 'Hamb MP', 'Hamb', 1500.00, 100, 10, '[]', true, true, NOW(), NOW())
                 """), {"id": prod_id})
 
                 # Link prod-cat
